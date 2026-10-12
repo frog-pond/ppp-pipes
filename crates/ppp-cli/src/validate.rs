@@ -10,8 +10,7 @@ use std::process::ExitCode;
 use ppp_core::schema::{RecordError, Registry};
 use serde_json::Value as Json;
 
-/// How many failures to print before summarizing the rest.
-const SHOWN: usize = 20;
+use crate::report::{Numbering, count, print_errors};
 
 pub fn run(file: &Path) -> ExitCode {
     let (records, numbering) = match read_records(file) {
@@ -43,27 +42,13 @@ pub fn run(file: &Path) -> ExitCode {
         );
         return ExitCode::SUCCESS;
     }
-    for e in errors.iter().take(SHOWN) {
-        eprintln!("{}: {}", file.display(), describe(e, &numbering));
-    }
-    if errors.len() > SHOWN {
-        eprintln!("{}: …and {} more", file.display(), errors.len() - SHOWN);
-    }
-    eprintln!(
-        "{}: {} in {}",
-        file.display(),
-        count(errors.len(), "error"),
-        count(records.len(), "record")
+    print_errors(
+        &file.display().to_string(),
+        &errors,
+        &numbering,
+        records.len(),
     );
     ExitCode::from(1)
-}
-
-/// How records are numbered in messages.
-enum Numbering {
-    /// 0-based position in a JSON array.
-    Record,
-    /// The 1-based line each record came from in a JSONL file.
-    Lines(Vec<usize>),
 }
 
 fn read_records(file: &Path) -> Result<(Vec<Json>, Numbering), String> {
@@ -83,26 +68,5 @@ fn read_records(file: &Path) -> Result<(Vec<Json>, Numbering), String> {
     match serde_json::from_str(&text).map_err(|e| e.to_string())? {
         Json::Array(records) => Ok((records, Numbering::Record)),
         _ => Err("expected a JSON array of records".to_string()),
-    }
-}
-
-fn describe(e: &RecordError, numbering: &Numbering) -> String {
-    let place = match numbering {
-        Numbering::Record => format!("record {}", e.index),
-        Numbering::Lines(lines) => format!("line {}", lines[e.index]),
-    };
-    let pointer = if e.pointer.is_empty() {
-        String::new()
-    } else {
-        format!(" {}", e.pointer)
-    };
-    format!("{place}{pointer}: {}\n    value: {}", e.message, e.excerpt)
-}
-
-fn count(n: usize, noun: &str) -> String {
-    if n == 1 {
-        format!("1 {noun}")
-    } else {
-        format!("{n} {noun}s")
     }
 }

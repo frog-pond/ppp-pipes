@@ -1,13 +1,13 @@
-# A sample pipe. It needs stdlib/ics.nu (with `from ics` and `into event`)
-# on the module path, since nushell resolves `use` at parse time.
-# The host reads everything below with `use campus-week.nu; scope commands`
-# and `$campus_week.pipe`, without running `main`.
+# Upcoming events from the St. Olaf calendar. Run with `ppp run campus-week`;
+# the host reads everything above `main`'s body without running it.
 
 # Pipe metadata that has no built-in attribute.
 export const pipe = {
     output: ["https://pipes.frogpond.tech/stdlib/calendar/1#event"]
     refresh: 1hr
 }
+
+const SOURCE = "https://www.stolaf.edu/apps/calendar/ical.cfm"
 
 # This week on campus
 #
@@ -16,12 +16,12 @@ export const pipe = {
 @search-terms calendar events
 @example "Next three days" { campus-week --days 3 }
 export def main [
-    --days: int = 7                    # How far ahead to look
-    --tz: string = "America/Chicago"   # Time zone for floating times
+    --days: int = 7  # How far ahead to look
 ]: nothing -> table {
-    use stdlib/ics.nu *
-    http get "https://www.stolaf.edu/apps/calendar/ical.cfm"
+    use pipes *
+    let now = date now
+    http get --raw $SOURCE
     | from ics
-    | where start < ((date now) + ($days * 1day))
-    | into event --tz $tz
+    | where start >= $now and start < ($now + ($days * 1day))
+    | into event --source $SOURCE
 }
