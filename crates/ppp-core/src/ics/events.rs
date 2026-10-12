@@ -4,6 +4,8 @@ use jiff::civil;
 use jiff::tz::TimeZone;
 use jiff::{Span, Timestamp, Zoned};
 
+use crate::recur::Rdate;
+
 use super::lines::{
     Component, Property, StructureError, parse_components, split_text_list, unescape_text,
 };
@@ -55,7 +57,7 @@ pub struct Event {
     pub organizer: Option<Organizer>,
     pub geo: Option<(f64, f64)>,
     pub rrule: Option<String>,
-    pub rdates: Vec<Zoned>,
+    pub rdates: Vec<Rdate>,
     pub exdates: Vec<Zoned>,
     pub recurrence_id: Option<Zoned>,
     pub created: Option<Timestamp>,
@@ -172,7 +174,7 @@ fn read_event(event: &Component, calendar_zone: Option<&str>) -> Result<Event, I
         }),
         geo: event.property("GEO").and_then(|p| read_geo(&p.value)),
         rrule: raw("RRULE"),
-        rdates: reader.times(event.all("RDATE"))?,
+        rdates: reader.rdates(event.all("RDATE"))?,
         exdates: reader.times(event.all("EXDATE"))?,
         recurrence_id: event
             .property("RECURRENCE-ID")
@@ -199,20 +201,59 @@ impl Reader<'_> {
         self.time_value(prop, prop.value.trim())
     }
 
-    /// Reads every value of every given RDATE/EXDATE-style property.
+    /// Reads every value of every given EXDATE-style property.
     fn times<'p>(&self, props: impl Iterator<Item = &'p Property>) -> Result<Vec<Zoned>, IcsError> {
         let mut out = Vec::new();
         for prop in props {
-            for value in prop
-                .value
-                .split(',')
-                .map(str::trim)
-                .filter(|v| !v.is_empty())
-            {
+            for value in list_values(prop) {
                 out.push(self.time_value(prop, value)?);
             }
         }
         Ok(out)
+    }
+
+    /// Reads every value of every RDATE property.
+    fn rdates<'p>(
+        &self,
+        props: impl Iterator<Item = &'p Property>,
+    ) -> Result<Vec<Rdate>, IcsError> {
+        let mut out = Vec::new();
+        for prop in props {
+            for value in list_values(prop) {
+                out.push(self.rdate(prop, value)?);
+            }
+        }
+        Ok(out)
+    }
+
+    /// A date, a date-time, or a PERIOD: a start and either an end or a
+    /// duration, joined by `/` (RFC 5545 §3.3.9).
+    fn rdate(&self, prop: &Property, value: &str) -> Result<Rdate, IcsError> {
+        let Some((start, end)) = value.split_once('/') else {
+            return Ok(Rdate {
+                start: self.time_value(prop, value)?,
+                end: None,
+            });
+        };
+        // Name the whole period, not the half that failed.
+        let bad = || IcsError::BadValue {
+            uid: self.uid.clone(),
+            property: prop.name.clone(),
+            value: value.to_string(),
+        };
+        let whole = |err| match err {
+            IcsError::BadValue { .. } => bad(),
+            other => other,
+        };
+        let start = self.time_value(prop, start).map_err(whole)?;
+        let end = match end.parse::<Span>() {
+            Ok(span) => start.checked_add(span).map_err(|_| bad())?,
+            Err(_) => self.time_value(prop, end).map_err(whole)?,
+        };
+        Ok(Rdate {
+            start,
+            end: Some(end),
+        })
     }
 
     fn time_value(&self, prop: &Property, value: &str) -> Result<Zoned, IcsError> {
@@ -279,6 +320,14 @@ impl Reader<'_> {
         let span: Span = prop.value.trim().parse().map_err(|_| bad())?;
         start.checked_add(span).map_err(|_| bad())
     }
+}
+
+/// The comma-separated values of a list property, such as RDATE.
+fn list_values(prop: &Property) -> impl Iterator<Item = &str> {
+    prop.value
+        .split(',')
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
 }
 
 fn is_date(prop: &Property) -> bool {

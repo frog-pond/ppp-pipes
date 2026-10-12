@@ -85,7 +85,7 @@ An event that repeats can arrive in two shapes.
 | Field | Type | Meaning |
 |---|---|---|
 | `rrule` | `rrule` | How the event repeats, as in RFC 5545. |
-| `rdates` | `when[]` | Extra occurrences the rule does not produce. |
+| `rdates` | `when[]` | Extra occurrences the rule does not produce. Each lasts as long as the event. |
 | `exdates` | `when[]` | Occurrences the rule produces that do not happen. |
 
 **As occurrences.** Each occurrence is its own event. This is what `expand rrule` produces, and what feeds like Google Calendar's give.

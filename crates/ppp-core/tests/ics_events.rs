@@ -395,3 +395,59 @@ fn times_must_have_exactly_the_rfc_5545_shape() {
         assert!(matches!(err, IcsError::BadValue { .. }), "{value}: {err:?}");
     }
 }
+
+#[test]
+fn period_rdates_keep_their_end() {
+    let e = one(
+        &calendar(
+            &["X-WR-TIMEZONE:America/Chicago"],
+            &[
+                "DTSTART:20261013T120000",
+                "RDATE;VALUE=PERIOD:20261014T120000/PT90M,20261015T120000/20261015T150000",
+                "RDATE:20261016T120000",
+            ],
+        ),
+        None,
+    );
+    let rdates: Vec<(String, Option<String>)> = e
+        .rdates
+        .iter()
+        .map(|r| (r.start.to_string(), r.end.as_ref().map(|z| z.to_string())))
+        .collect();
+    assert_eq!(
+        rdates,
+        [
+            (
+                "2026-10-14T12:00:00-05:00[America/Chicago]".to_string(),
+                Some("2026-10-14T13:30:00-05:00[America/Chicago]".to_string())
+            ),
+            (
+                "2026-10-15T12:00:00-05:00[America/Chicago]".to_string(),
+                Some("2026-10-15T15:00:00-05:00[America/Chicago]".to_string())
+            ),
+            (
+                "2026-10-16T12:00:00-05:00[America/Chicago]".to_string(),
+                None
+            ),
+        ]
+    );
+}
+
+#[test]
+fn a_bad_period_names_the_rdate() {
+    let err = parse_events(
+        &calendar(
+            &["X-WR-TIMEZONE:America/Chicago"],
+            &[
+                "DTSTART:20261013T120000",
+                "RDATE;VALUE=PERIOD:20261014T120000/soon",
+            ],
+        ),
+        None,
+    )
+    .unwrap_err();
+    assert!(
+        matches!(err, IcsError::BadValue { ref property, ref value, .. } if property == "RDATE" && value == "20261014T120000/soon"),
+        "{err:?}"
+    );
+}

@@ -2,7 +2,7 @@
 //! overlap window, and the limits.
 
 use jiff::{SignedDuration, Timestamp, Zoned};
-use ppp_core::recur::{RecurError, Series, occurrences};
+use ppp_core::recur::{Occurrence, Rdate, RecurError, Series, occurrences};
 
 fn zoned(text: &str) -> Zoned {
     text.parse().unwrap()
@@ -16,8 +16,15 @@ fn starts(series: &Series, length: SignedDuration, from: &str, until: &str) -> V
     occurrences(series, length, instant(from), instant(until))
         .unwrap()
         .iter()
-        .map(|z| z.to_string())
+        .map(|o| o.start.to_string())
         .collect()
+}
+
+fn rdate(start: &str) -> Rdate {
+    Rdate {
+        start: zoned(start),
+        end: None,
+    }
 }
 
 const TWO_HOURS: SignedDuration = SignedDuration::from_hours(2);
@@ -74,7 +81,7 @@ fn a_time_in_the_spring_forward_gap_moves_later() {
 fn exdates_remove_and_rdates_add() {
     let start = zoned("2026-11-03T18:00:00[America/Chicago]");
     let exdates = [zoned("2026-11-10T18:00:00[America/Chicago]")];
-    let rdates = [zoned("2026-11-12T12:00:00[America/Chicago]")];
+    let rdates = [rdate("2026-11-12T12:00:00[America/Chicago]")];
     let series = Series {
         start: &start,
         rrule: Some("FREQ=WEEKLY;COUNT=3"),
@@ -99,7 +106,7 @@ fn exdates_remove_and_rdates_add() {
 #[test]
 fn rdates_alone_still_count_dtstart() {
     let start = zoned("2026-11-03T18:00:00[America/Chicago]");
-    let rdates = [zoned("2026-11-05T18:00:00[America/Chicago]")];
+    let rdates = [rdate("2026-11-05T18:00:00[America/Chicago]")];
     let series = Series {
         start: &start,
         rrule: None,
@@ -352,5 +359,36 @@ fn an_until_before_dtstart_leaves_just_dtstart() {
             "2026-12-01T00:00:00Z"
         ),
         ["2026-10-27T18:00:00-05:00[America/Chicago]"]
+    );
+}
+
+#[test]
+fn a_period_rdate_keeps_its_own_end() {
+    let start = zoned("2026-11-03T18:00:00[America/Chicago]");
+    let rdates = [Rdate {
+        start: zoned("2026-11-05T09:00:00[America/Chicago]"),
+        end: Some(zoned("2026-11-05T17:00:00[America/Chicago]")),
+    }];
+    let series = Series {
+        start: &start,
+        rrule: None,
+        rdates: &rdates,
+        exdates: &[],
+    };
+    // The window opens after the series' usual two hours would have ended,
+    // but inside the period.
+    let found = occurrences(
+        &series,
+        TWO_HOURS,
+        instant("2026-11-05T21:00:00Z"),
+        instant("2026-11-06T00:00:00Z"),
+    )
+    .unwrap();
+    assert_eq!(
+        found,
+        [Occurrence {
+            start: zoned("2026-11-05T09:00:00[America/Chicago]"),
+            period_end: Some(zoned("2026-11-05T17:00:00[America/Chicago]")),
+        }]
     );
 }

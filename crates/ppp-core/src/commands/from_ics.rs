@@ -134,7 +134,22 @@ fn event_to_value(event: &Event, span: Span) -> Value {
             "uid" => text(&event.uid),
             "status" => text(&event.status),
             "rrule" => text(&event.rrule),
-            "rdates" => dates(&event.rdates),
+            "rdates" => Value::list(
+                event
+                    .rdates
+                    .iter()
+                    .map(|rdate| {
+                        Value::record(
+                            record! {
+                                "start" => Value::date(time::to_nu(&rdate.start), span),
+                                "end" => date(&rdate.end),
+                            },
+                            span,
+                        )
+                    })
+                    .collect(),
+                span,
+            ),
             "exdates" => dates(&event.exdates),
             "recurrence_id" => date(&event.recurrence_id),
             "created" => instant(&event.created),

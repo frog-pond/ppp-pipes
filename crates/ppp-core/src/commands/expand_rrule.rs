@@ -7,7 +7,7 @@ use jiff::{SignedDuration, Timestamp, Zoned};
 use nu_engine::command_prelude::*;
 
 use super::CommandError;
-use crate::recur::{Series, occurrences};
+use crate::recur::{Rdate, Series, occurrences};
 use crate::time;
 
 #[derive(Clone)]
@@ -160,17 +160,23 @@ pub fn expand(
             true => Length::Days(jiff::Span::new().days((end.date() - start.date()).get_days())),
             false => Length::Exact(length),
         });
-        let in_zone = |key: &str| -> Vec<Zoned> {
-            match row.get_data_by_key(key) {
-                Some(Value::List { vals, .. }) => vals
-                    .iter()
-                    .filter_map(timestamp)
-                    .map(|ts| ts.to_zoned(zone.clone()))
-                    .collect(),
-                _ => Vec::new(),
-            }
+        let in_zone = |value: &Value| timestamp(value).map(|ts| ts.to_zoned(zone.clone()));
+        let rdates: Vec<Rdate> = match row.get_data_by_key("rdates") {
+            Some(Value::List { vals, .. }) => vals
+                .iter()
+                .filter_map(|rdate| {
+                    Some(Rdate {
+                        start: in_zone(&rdate.get_data_by_key("start")?)?,
+                        end: rdate.get_data_by_key("end").and_then(|end| in_zone(&end)),
+                    })
+                })
+                .collect(),
+            _ => Vec::new(),
         };
-        let (rdates, exdates) = (in_zone("rdates"), in_zone("exdates"));
+        let exdates: Vec<Zoned> = match row.get_data_by_key("exdates") {
+            Some(Value::List { vals, .. }) => vals.iter().filter_map(in_zone).collect(),
+            _ => Vec::new(),
+        };
         let rrule = text(&row, "rrule");
         let series = Series {
             start: &start,
@@ -181,8 +187,14 @@ pub fn expand(
         for occurrence in
             occurrences(&series, length, from, until).map_err(|e| fail(e.to_string()))?
         {
-            if !overrides.contains(&(uid.clone(), occurrence.timestamp())) {
-                out.push(occurrence_row(&row, &occurrence, occurrence_length, span));
+            if !overrides.contains(&(uid.clone(), occurrence.start.timestamp())) {
+                let length = match &occurrence.period_end {
+                    Some(end) => Some(Length::Exact(
+                        end.timestamp().duration_since(occurrence.start.timestamp()),
+                    )),
+                    None => occurrence_length,
+                };
+                out.push(occurrence_row(&row, &occurrence.start, length, span));
             }
         }
     }

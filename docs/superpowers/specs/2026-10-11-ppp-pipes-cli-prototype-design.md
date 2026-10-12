@@ -177,7 +177,8 @@ The library module is called `ppp`, not `pipes`, because nushell's `use` looks f
 A port of `ics.nu`. It keeps the same columns (`summary`, `start`, `end`, `all_day`, `location`, `description`, `url`, `categories`, `organizer`, `geo`, `uid`, `status`, `rrule`, `created`, `last_modified`, `props`) and adds:
 
 - `tz`: the zone each event's times belong to;
-- `rdates`, `exdates`: lists of datetimes;
+- `rdates`: a list of `{start, end}` records. `end` is set for a PERIOD value (`20261014T090000/PT8H` or `…/20261014T170000`), and `expand rrule` gives that occurrence the period's end instead of the event's usual length. `into event` keeps only the starts;
+- `exdates`: a list of datetimes;
 - `recurrence_id`: set on override VEVENTs, which are returned as their own rows.
 
 It handles CRLF and LF line endings, folded lines, quoted parameters, TEXT escapes, comma-separated lists, `DURATION` in place of `DTEND`, and `VALUE=DATE`. It reads only VEVENTs. VTIMEZONE blocks and their nested RRULEs never become events.
