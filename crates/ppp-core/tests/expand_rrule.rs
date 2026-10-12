@@ -223,7 +223,14 @@ fn all_day_events_with_no_zone_keep_their_dates() {
 fn an_all_day_series_with_a_date_until() {
     // The form Google writes for all-day series.
     let ics = "BEGIN:VCALENDAR\nX-WR-TIMEZONE:America/Chicago\nBEGIN:VEVENT\nUID:w@example.edu\nSUMMARY:Writing Lab\nDTSTART;VALUE=DATE:20261105\nDTEND;VALUE=DATE:20261106\nRRULE:FREQ=WEEKLY;UNTIL=20261119\nEND:VEVENT\nEND:VCALENDAR\n";
-    let events = expanded(ics, "2026-11-01T00:00:00-05:00", "2027-01-01T00:00:00-06:00");
-    let starts: Vec<&str> = events.iter().map(|e| e["start"].as_str().unwrap()).collect();
+    let events = expanded(
+        ics,
+        "2026-11-01T00:00:00-05:00",
+        "2027-01-01T00:00:00-06:00",
+    );
+    let starts: Vec<&str> = events
+        .iter()
+        .map(|e| e["start"].as_str().unwrap())
+        .collect();
     assert_eq!(starts, ["2026-11-05", "2026-11-12", "2026-11-19"]);
 }
