@@ -63,7 +63,10 @@ def event-images [page: string, start: datetime, until: datetime]: nothing -> re
         | each {|found| [$found.code $found.image] }
         | into record
     } catch {|err|
-        pipe warn $"Carleton event pictures are missing: ($err.msg)"
+        # The labels say what failed, e.g. "GET <url> returned HTTP 503".
+        let detail = $err.details?.labels?.text? | default [] | str join "; "
+        let reason = if $detail == "" { $err.msg } else { $"($err.msg): ($detail)" }
+        pipe warn $"Carleton event pictures are missing: ($reason)"
         {}
     }
 }
