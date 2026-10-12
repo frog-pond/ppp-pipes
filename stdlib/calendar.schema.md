@@ -24,7 +24,7 @@ The event is closed: any field not listed here fails validation. Put source fiel
 | `start` | `when` | When it starts. |
 | `end` | `when` | When it ends. The end is exclusive: an all-day event on 14 October has `start: "2026-10-14"` and `end: "2026-10-15"`. |
 | `duration` | `duration` | How long it lasts, instead of `end`. An event may have `end` or `duration`, not both. With neither, the event is a moment. |
-| `all_day` | boolean | The event fills whole days. Its `start` and `end` must then be dates. |
+| `all_day` | boolean | The event fills whole days. Its `start`, `end`, `recurrence_id`, `exdates` and `rdates` must then be dates. |
 | `tz` | `tz` | The zone the event happens in. Required when any time on the event is a local date-time. |
 | `status` | `"tentative"`, `"confirmed"` or `"cancelled"` | As in iCalendar's `STATUS`. |
 
@@ -113,6 +113,6 @@ Most fields check only themselves. These rules look at more than one:
 
 1. Unless `partial` is `true`, `summary` and `start` are required.
 2. `end` and `duration` cannot both appear.
-3. If `all_day` is `true`, `start` and `end` must be dates.
+3. If `all_day` is `true`, `start`, `end`, `recurrence_id`, every item of `exdates`, and the `start` and `end` of every item of `rdates` must be dates.
 4. If `start`, `end`, `recurrence_id`, any item of `exdates`, or the `start` or `end` of any item of `rdates` is a local date-time, `tz` is required.
 5. `location` needs `name` or `place`.

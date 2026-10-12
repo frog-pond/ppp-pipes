@@ -22,7 +22,17 @@
           "then": {
             "properties": {
               "start": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/date" },
-              "end": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/date" }
+              "end": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/date" },
+              "recurrence_id": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/date" },
+              "rdates": {
+                "items": {
+                  "properties": {
+                    "start": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/date" },
+                    "end": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/date" }
+                  }
+                }
+              },
+              "exdates": { "items": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/date" } }
             }
           }
         },

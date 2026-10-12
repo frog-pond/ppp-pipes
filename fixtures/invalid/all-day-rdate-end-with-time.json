@@ -1,0 +1,14 @@
+[
+  {
+    "type": "event",
+    "id": "x@example.edu",
+    "summary": "Chess Club",
+    "start": "2026-10-17",
+    "end": "2026-10-18",
+    "all_day": true,
+    "rrule": "FREQ=WEEKLY",
+    "rdates": [
+      { "start": "2026-10-20", "end": "2026-10-21T00:00:00Z" }
+    ]
+  }
+]
