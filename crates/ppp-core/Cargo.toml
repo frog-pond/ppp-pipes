@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 chrono.workspace = true
 chrono-tz.workspace = true
+htmlize.workspace = true
 jiff.workspace = true
 jsonschema.workspace = true
 nu-cmd-lang.workspace = true

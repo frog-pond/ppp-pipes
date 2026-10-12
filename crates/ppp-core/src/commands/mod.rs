@@ -9,11 +9,13 @@ use crate::host::Host;
 
 pub mod expand_rrule;
 mod from_ics;
+mod html_to_text;
 mod http_get;
 mod pipe_get;
 
 pub use expand_rrule::ExpandRrule;
 pub use from_ics::FromIcs;
+pub use html_to_text::HtmlToText;
 pub use http_get::HttpGet;
 pub use pipe_get::PipeGet;
 
@@ -29,6 +31,7 @@ pub struct Context {
 pub fn bind(working_set: &mut StateWorkingSet, context: &Context) {
     working_set.add_decl(Box::new(ExpandRrule));
     working_set.add_decl(Box::new(FromIcs));
+    working_set.add_decl(Box::new(HtmlToText));
     working_set.add_decl(Box::new(HttpGet {
         context: context.clone(),
     }));

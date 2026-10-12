@@ -2,6 +2,7 @@ pub mod cache;
 pub mod commands;
 pub mod engine;
 pub mod host;
+pub mod html;
 pub mod http;
 pub mod ics;
 pub mod pipe;
