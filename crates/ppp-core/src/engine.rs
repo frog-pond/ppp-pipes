@@ -65,8 +65,10 @@ impl Engine {
     pub fn eval(&mut self, source: &str, input: Value) -> Result<Value, EngineError> {
         let block = {
             let mut working_set = StateWorkingSet::new(&self.state);
+            // `parse` would reuse a cached block for repeated source text, and
+            // that block comes back without its compiled form.
             let block =
-                nu_parser::parse(&mut working_set, Some("source"), source.as_bytes(), false);
+                nu_parser::parse_fresh(&mut working_set, Some("source"), source.as_bytes(), false);
             if let Some(err) = working_set.parse_errors.first() {
                 return Err(EngineError(format_cli_error(None, &working_set, err, None)));
             }

@@ -130,3 +130,16 @@ fn parse_warnings_are_kept() {
     assert!(warnings[0].contains("old is deprecated"), "{}", warnings[0]);
     assert!(engine.take_warnings().is_empty());
 }
+
+#[test]
+fn the_same_source_can_run_twice() {
+    // nushell's parser caches blocks by source; a cached block came back
+    // without its compiled form.
+    let mut engine = Engine::new();
+    for i in 0..3 {
+        assert_eq!(
+            nuon(&mut engine, "$in + 1", Value::test_int(i)),
+            (i + 1).to_string()
+        );
+    }
+}
