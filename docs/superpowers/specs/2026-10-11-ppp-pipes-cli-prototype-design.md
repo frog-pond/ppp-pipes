@@ -120,6 +120,8 @@ Each command is a plain function: typed arguments and a `Value` in, a `Value` or
 
 `nu_plugin_formats` has only the second kind, which is why we cannot link it into our own binary.
 
+The function returns a small `CommandError` (title and message), which each wrapper turns into its own error type: a `ShellError` in the engine, a `LabeledError` in the plugin. The plugin's wrappers borrow name, signature and description from the engine's command, so the two can't drift apart.
+
 ### 4.4 `ppp-cli`
 
 ```
@@ -146,7 +148,9 @@ pipe get campus-week {days: 3}
 
 Pipe files run unchanged: `use pipes/campus-week.nu; campus-week --within 3day`.
 
-Outside the runner there is no sandbox, and `http get` is nushell's own, without our cache. `pipe get` is the exception: it runs the full sandboxed engine inside the plugin process, with the cache and validation.
+Outside the runner there is no sandbox, and `http get` is nushell's own, without our cache. `pipe get` is the exception: it runs the full sandboxed engine inside the plugin process, with the cache (in the user cache directory), validation and a 60-second limit. In the plugin it takes `--pipes-dir`, relative to nushell's current directory (default `./pipes`).
+
+The plugin is built against nushell 0.116.1 and loads only into that version. Pipe files' own `use pipes *` resolves next to the file first, then in `NU_LIB_DIRS`; but typed at a prompt in the repository root, `use pipes *` finds the repository's `pipes/` directory (the acceptance pipes) before the library, and fails.
 
 ---
 
