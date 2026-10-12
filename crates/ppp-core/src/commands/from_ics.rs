@@ -1,8 +1,8 @@
 //! `from ics`: iCalendar text to a table of events (spec §5.2).
 
 use nu_engine::command_prelude::*;
-use nu_protocol::shell_error::generic::GenericError;
 
+use super::CommandError;
 use crate::ics::events::{Event, parse_events};
 use crate::ics::lines::Property;
 use crate::time;
@@ -48,40 +48,36 @@ impl Command for FromIcs {
     ) -> Result<PipelineData, ShellError> {
         let head = call.head;
         let tz: Option<String> = call.get_flag(engine_state, stack, "tz")?;
-        // Feeds served as application/octet-stream arrive as binary.
-        let value = input.into_value(head)?;
-        let span = value.span();
-        let text = match value {
-            Value::String { val, .. } => val,
-            Value::Binary { val, .. } => String::from_utf8(val.to_vec()).map_err(|_| {
-                ShellError::Generic(GenericError::new(
-                    "cannot read iCalendar text",
-                    "the input is not UTF-8 text",
-                    span,
-                ))
-            })?,
-            other => {
-                return Err(ShellError::OnlySupportsThisInputType {
-                    exp_input_type: "string or binary".into(),
-                    wrong_type: other.get_type().to_string(),
-                    dst_span: head,
-                    src_span: span,
-                });
-            }
-        };
-        let events = parse_events(&text, tz.as_deref()).map_err(|err| {
-            ShellError::Generic(GenericError::new(
-                "cannot read iCalendar text",
-                err.to_string(),
-                span,
-            ))
-        })?;
-        let rows = events
+        let input = input.into_value(head)?;
+        read(input, tz.as_deref(), head)
+            .map(|rows| rows.into_pipeline_data())
+            .map_err(|err| err.into_shell_error(head))
+    }
+}
+
+/// Reads iCalendar text (a string, or UTF-8 binary) into a table of events.
+pub fn read(input: Value, tz: Option<&str>, head: Span) -> Result<Value, CommandError> {
+    let fail = |message: String| CommandError::new("cannot read iCalendar text", message);
+    // Feeds served as application/octet-stream arrive as binary.
+    let text = match input {
+        Value::String { val, .. } => val,
+        Value::Binary { val, .. } => String::from_utf8(val.to_vec())
+            .map_err(|_| fail("the input is not UTF-8 text".into()))?,
+        other => {
+            return Err(fail(format!(
+                "expected text or binary, got {}",
+                other.get_type()
+            )));
+        }
+    };
+    let events = parse_events(&text, tz).map_err(|err| fail(err.to_string()))?;
+    Ok(Value::list(
+        events
             .iter()
             .map(|event| event_to_value(event, head))
-            .collect();
-        Ok(Value::list(rows, head).into_pipeline_data())
-    }
+            .collect(),
+        head,
+    ))
 }
 
 fn event_to_value(event: &Event, span: Span) -> Value {

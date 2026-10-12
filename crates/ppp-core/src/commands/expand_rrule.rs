@@ -5,8 +5,8 @@ use std::collections::HashSet;
 use jiff::tz::TimeZone;
 use jiff::{SignedDuration, Timestamp, Zoned};
 use nu_engine::command_prelude::*;
-use nu_protocol::shell_error::generic::GenericError;
 
+use super::CommandError;
 use crate::recur::{Series, occurrences};
 use crate::time;
 
@@ -57,24 +57,45 @@ impl Command for ExpandRrule {
         let until: Value = call
             .get_flag(engine_state, stack, "until")?
             .expect("required flag");
-        let out_of_range = |value: &Value| {
-            ShellError::Generic(GenericError::new(
-                "date out of range",
-                "outside the years -9999 to 9999",
-                value.span(),
-            ))
-        };
-        let from_ts = time::timestamp(&from.as_date()?).map_err(|_| out_of_range(&from))?;
-        let until_ts = time::timestamp(&until.as_date()?).map_err(|_| out_of_range(&until))?;
-        let rows = input.into_value(head)?.into_list()?;
-        let expanded = expand(rows, from_ts, until_ts, head).map_err(|err| {
-            ShellError::Generic(GenericError::new(
-                format!("cannot expand event {}", err.uid),
-                err.message,
-                head,
-            ))
+        expand_values(input.into_value(head)?, &from, &until, head)
+            .map(|rows| rows.into_pipeline_data())
+            .map_err(|err| err.into_shell_error(head))
+    }
+}
+
+/// Expands the table `input` over [from, until), both nushell datetimes.
+pub fn expand_values(
+    input: Value,
+    from: &Value,
+    until: &Value,
+    head: Span,
+) -> Result<Value, CommandError> {
+    let instant = |value: &Value| {
+        let date = value.as_date().map_err(|_| {
+            CommandError::new("expand rrule", "--from and --until must be datetimes")
         })?;
-        Ok(Value::list(expanded, head).into_pipeline_data())
+        time::timestamp(&date)
+            .map_err(|_| CommandError::new("date out of range", "outside the years -9999 to 9999"))
+    };
+    let rows = match input {
+        Value::List { vals, .. } => vals.to_vec(),
+        Value::Nothing { .. } => Vec::new(),
+        other => {
+            return Err(CommandError::new(
+                "expand rrule",
+                format!("expected a table, got {}", other.get_type()),
+            ));
+        }
+    };
+    Ok(Value::list(
+        expand(rows, instant(from)?, instant(until)?, head)?,
+        head,
+    ))
+}
+
+impl From<ExpandError> for CommandError {
+    fn from(err: ExpandError) -> Self {
+        CommandError::new(format!("cannot expand event {}", err.uid), err.message)
     }
 }
 

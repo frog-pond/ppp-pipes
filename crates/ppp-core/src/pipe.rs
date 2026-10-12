@@ -258,23 +258,37 @@ pub fn check_records(
     info: &PipeInfo,
     records: &[Value],
 ) -> Result<Vec<Json>, Vec<RecordError>> {
+    check_values(registry, Some(&info.output), records)
+}
+
+/// Checks records against the stdlib: each must have a stdlib type (one of
+/// `allowed`, given as type URIs, when that is given), serialize for it, and
+/// validate. Returns the JSON records, or every failure.
+pub fn check_values(
+    registry: &Registry,
+    allowed: Option<&[String]>,
+    records: &[Value],
+) -> Result<Vec<Json>, Vec<RecordError>> {
     let mut out = Vec::with_capacity(records.len());
     let mut errors = Vec::new();
     for (index, record) in records.iter().enumerate() {
         let type_name = record
             .get_data_by_key("type")
             .and_then(|v| v.coerce_string().ok());
-        let declared = type_name
+        let found = type_name
             .as_deref()
-            .and_then(|name| registry.record_type(name))
-            .filter(|record_type| info.output.contains(&record_type.uri));
+            .and_then(|name| registry.record_type(name));
+        let declared = found.filter(|t| allowed.is_none_or(|uris| uris.contains(&t.uri)));
         let Some(record_type) = declared else {
-            let message = match type_name {
-                Some(name) => format!(
-                    "type \"{name}\" is not one of the pipe's output types: {}",
-                    info.output.join(", ")
-                ),
-                None => "record has no \"type\"".to_string(),
+            let message = match (&type_name, allowed) {
+                (None, _) => "record has no \"type\"".to_string(),
+                (Some(name), Some(uris)) => {
+                    format!(
+                        "type \"{name}\" is not one of the pipe's output types: {}",
+                        uris.join(", ")
+                    )
+                }
+                (Some(name), None) => format!("unknown record type \"{name}\""),
             };
             errors.push(RecordError {
                 index,

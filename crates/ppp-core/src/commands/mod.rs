@@ -4,20 +4,27 @@ use std::sync::{Arc, Mutex};
 
 use jiff::SignedDuration;
 use nu_protocol::engine::StateWorkingSet;
+use nu_protocol::shell_error::generic::GenericError;
+use nu_protocol::{LabeledError, ShellError, Span};
 
 use crate::host::Host;
+use crate::schema::RecordError;
 
 pub mod expand_rrule;
-mod from_ics;
+pub mod from_ics;
 mod html_to_text;
 mod http_get;
-mod pipe_get;
+pub mod pipe_get;
+pub mod to_pipes_json;
+pub mod validate;
 
 pub use expand_rrule::ExpandRrule;
 pub use from_ics::FromIcs;
 pub use html_to_text::HtmlToText;
 pub use http_get::HttpGet;
 pub use pipe_get::PipeGet;
+pub use to_pipes_json::ToPipesJson;
+pub use validate::Validate;
 
 /// What our commands share with the engine that runs them.
 #[derive(Clone)]
@@ -38,4 +45,51 @@ pub fn bind(working_set: &mut StateWorkingSet, context: &Context) {
     working_set.add_decl(Box::new(PipeGet {
         context: context.clone(),
     }));
+    working_set.add_decl(Box::new(ToPipesJson {
+        context: context.clone(),
+    }));
+    working_set.add_decl(Box::new(Validate {
+        context: context.clone(),
+    }));
+}
+
+/// Why one of our commands failed, in a form both the engine's commands
+/// and the plugin's can report.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommandError {
+    pub title: String,
+    pub message: String,
+}
+
+impl CommandError {
+    pub fn new(title: impl Into<String>, message: impl Into<String>) -> CommandError {
+        CommandError {
+            title: title.into(),
+            message: message.into(),
+        }
+    }
+
+    pub fn into_shell_error(self, span: Span) -> ShellError {
+        ShellError::Generic(GenericError::new(self.title, self.message, span))
+    }
+
+    pub fn into_labeled_error(self, span: Span) -> LabeledError {
+        LabeledError::new(self.title).with_label(self.message, span)
+    }
+}
+
+/// How many record failures an error message shows.
+const SHOWN: usize = 5;
+
+/// The first few record failures, one per line.
+pub fn describe_failures(errors: &[RecordError]) -> String {
+    let mut lines: Vec<String> = errors
+        .iter()
+        .take(SHOWN)
+        .map(|e| format!("record {} {}: {}", e.index, e.pointer, e.message))
+        .collect();
+    if errors.len() > SHOWN {
+        lines.push(format!("…and {} more", errors.len() - SHOWN));
+    }
+    lines.join("\n")
 }
