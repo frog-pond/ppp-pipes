@@ -120,3 +120,18 @@ fn long_excerpts_are_cut_on_character_boundaries() {
     assert_eq!(root.excerpt.chars().count(), 80);
     assert!(root.excerpt.ends_with('…'));
 }
+
+#[test]
+fn a_value_failing_pattern_and_format_is_one_error() {
+    let registry = Registry::stdlib().unwrap();
+    let record = serde_json::json!({
+        "type": "event", "id": "x", "summary": "Chess Club", "start": "2026-10-22T16:00:00Z",
+        "duration": "2h", "url": "not a url"
+    });
+    let pointers: Vec<String> = registry
+        .validate(0, &record)
+        .into_iter()
+        .map(|e| e.pointer)
+        .collect();
+    assert_eq!(pointers, ["/duration", "/url"]);
+}

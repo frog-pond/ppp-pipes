@@ -6,6 +6,7 @@
 
 use std::collections::BTreeMap;
 
+use jsonschema::error::ValidationErrorKind;
 use serde_json::Value as Json;
 
 use crate::time_fields::{self, Documents, TimeTree};
@@ -163,9 +164,21 @@ impl Registry {
             let message = format!("unknown record type \"{type_name}\"");
             return vec![error(index, "/type", &message, &record["type"])];
         };
-        record_type
-            .validator
-            .iter_errors(record)
+        let errors: Vec<_> = record_type.validator.iter_errors(record).collect();
+        let fails_format = |path: &str| {
+            errors.iter().any(|e| {
+                matches!(e.kind(), ValidationErrorKind::Format { .. })
+                    && e.instance_path().as_str() == path
+            })
+        };
+        errors
+            .iter()
+            // A value that fails its `format` usually fails its `pattern`
+            // too; one bad value is one error.
+            .filter(|e| {
+                !matches!(e.kind(), ValidationErrorKind::Pattern { .. })
+                    || !fails_format(e.instance_path().as_str())
+            })
             .map(|e| {
                 error(
                     index,
