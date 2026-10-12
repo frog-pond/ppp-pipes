@@ -51,3 +51,14 @@ fn the_command_passes_null_through() {
         .unwrap();
     assert!(nothing.is_nothing());
 }
+
+#[test]
+fn convert_turns_html_values_into_text_and_keeps_null() {
+    use ppp_core::commands::html_to_text::convert;
+    let head = nu_protocol::Span::test_data();
+    assert_eq!(
+        convert(Value::test_string("<b>x</b>"), head).unwrap(),
+        Value::string("x", head)
+    );
+    assert!(convert(Value::test_nothing(), head).unwrap().is_nothing());
+}
