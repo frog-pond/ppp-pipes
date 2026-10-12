@@ -33,6 +33,8 @@ pub fn fetch(
     url: &str,
     refresh: Option<SignedDuration>,
 ) -> Result<Fetched, FetchError> {
+    // The fragment never reaches the server, so it must not split the cache.
+    let url = url.split_once('#').map_or(url, |(before, _)| before);
     let cache = host.config.cache_dir.as_deref().map(Cache::new);
     let cached = cache.as_ref().and_then(|cache| cache.get(url));
     let now = Timestamp::now();
