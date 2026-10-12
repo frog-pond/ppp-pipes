@@ -92,6 +92,56 @@ fn a_stale_response_is_revalidated_with_its_etag() {
 }
 
 #[test]
+fn a_304_without_validators_keeps_the_old_ones() {
+    let server = serve(vec![
+        reply(
+            "200 OK",
+            &[
+                ("ETag", "\"v1\""),
+                ("Last-Modified", "Mon, 12 Oct 2026 04:00:00 GMT"),
+            ],
+            "hello",
+        ),
+        reply("304 Not Modified", &[], ""),
+        reply("304 Not Modified", &[], ""),
+    ]);
+    let host = host_with_cache("http-304-keeps-validators");
+    fetch(&host, &server.url, None).unwrap();
+    fetch(&host, &server.url, None).unwrap();
+    fetch(&host, &server.url, None).unwrap();
+    let requests = server.requests.lock().unwrap();
+    assert!(
+        requests[2].contains("if-none-match: \"v1\""),
+        "{}",
+        requests[2]
+    );
+    assert!(
+        requests[2].contains("if-modified-since: mon, 12 oct 2026 04:00:00 gmt"),
+        "{}",
+        requests[2]
+    );
+}
+
+#[test]
+fn a_304_without_cache_control_keeps_the_old_max_age() {
+    let server = serve(vec![
+        reply(
+            "200 OK",
+            &[("ETag", "\"v1\""), ("Cache-Control", "max-age=1")],
+            "hello",
+        ),
+        reply("304 Not Modified", &[], ""),
+        reply("304 Not Modified", &[], ""),
+    ]);
+    let host = host_with_cache("http-304-keeps-max-age");
+    fetch(&host, &server.url, None).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(1100));
+    fetch(&host, &server.url, None).unwrap();
+    assert!(fetch(&host, &server.url, None).unwrap().from_cache);
+    assert_eq!(server.requests.lock().unwrap().len(), 2);
+}
+
+#[test]
 fn http_errors_name_the_url_and_status() {
     let server = serve(vec![reply("404 Not Found", &[], "gone")]);
     let err = fetch(&Host::default(), &server.url, None).unwrap_err();
