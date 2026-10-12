@@ -38,8 +38,8 @@ pub struct Occurrence {
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum RecurError {
-    #[error("{0}")]
-    Rule(String),
+    #[error("RRULE \"{rule}\" is not valid: {reason}")]
+    Rule { rule: String, reason: String },
     #[error("time zone \"{0}\" is not an IANA zone name")]
     Zone(String),
     #[error("the rule has more than {MAX_OCCURRENCES} occurrences in the window")]
@@ -81,7 +81,16 @@ pub fn occurrences(
     };
     let set = match rule.as_deref() {
         Some(rule) => {
-            let rule_error = |e: rrule::RRuleError| RecurError::Rule(e.to_string());
+            let rule_error = |e: rrule::RRuleError| RecurError::Rule {
+                rule: series.rrule.unwrap_or_default().to_string(),
+                // The crate's own prefix ("RRule parsing error: ") means
+                // nothing to someone reading a feed.
+                reason: match e {
+                    rrule::RRuleError::ParserError(e) => e.to_string(),
+                    rrule::RRuleError::ValidationError(e) => e.to_string(),
+                    rrule::RRuleError::IterError(e) => e,
+                },
+            };
             let rule = rule.parse::<RRule<Unvalidated>>().map_err(rule_error)?;
             let set = rule.clone().build(dt_start).map_err(rule_error)?;
             match rule.get_count() {
@@ -179,10 +188,9 @@ fn until_in_utc(rule: &str, zone: &TimeZone) -> Result<(String, Option<Timestamp
             parts.push(part.to_string());
             continue;
         }
-        let bad = || {
-            RecurError::Rule(format!(
-                "UNTIL value \"{value}\" is not a date or date-time"
-            ))
+        let bad = || RecurError::Rule {
+            rule: rule.to_string(),
+            reason: format!("UNTIL value \"{value}\" is not a date or date-time"),
         };
         let wall = match value.len() {
             8 => civil::Date::strptime("%Y%m%d", value).map(|d| d.at(23, 59, 59, 0)),
