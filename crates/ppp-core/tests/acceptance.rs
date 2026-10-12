@@ -239,3 +239,38 @@ fn carleton_week_without_its_page_still_has_its_events() {
         "{warnings:?}"
     );
 }
+
+#[test]
+fn all_campus_keeps_going_when_a_source_fails() {
+    let dir = std::env::temp_dir().join(format!("ppp-all-campus-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::copy(repo("pipes/all-campus.nu"), dir.join("all-campus.nu")).unwrap();
+    let working = read("fixtures/pipes/two-events.nu").replace(
+        "--count: int = 2          # How many events to return",
+        "--count: int = 2\n    --within: duration\n    --from: datetime",
+    );
+    let failing = read("fixtures/pipes/fails.nu")
+        .replace("export def main []", "export def main [--within: duration, --from: datetime]");
+    for name in ["stolaf-wp", "campus-week", "carleton-week", "northfield"] {
+        std::fs::write(dir.join(format!("{name}.nu")), &working).unwrap();
+    }
+    std::fs::write(dir.join("presence.nu"), failing).unwrap();
+
+    let host = Arc::new(Host::new(HostConfig {
+        pipes_dir: dir.clone(),
+        ..HostConfig::default()
+    }));
+    let mut pipe = Pipe::load_with(&dir.join("all-campus.nu"), host.clone()).unwrap();
+    let records = pipe.run(&Record::new());
+    std::fs::remove_dir_all(&dir).unwrap();
+    assert_eq!(records.unwrap().len(), 2);
+    let warnings = host.take_warnings();
+    assert!(
+        warnings
+            .iter()
+            .any(|w| w.contains("presence was left out") && w.contains("the source is down")),
+        "{warnings:?}"
+    );
+    // Warnings are read in a terminal or a log; colour codes would be noise.
+    assert!(warnings.iter().all(|w| !w.contains('\x1b')), "{warnings:?}");
+}

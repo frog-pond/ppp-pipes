@@ -21,7 +21,13 @@ export def main [
     # stolaf-wp first: where St. Olaf's two calendars list the same event,
     # its records (with venues and costs) are the ones kept.
     [stolaf-wp campus-week presence carleton-week northfield]
-    | each {|name| pipe get $name $args }
+    # One source being down shouldn't take the others with it.
+    | each {|name|
+        try { pipe get $name $args } catch {|err|
+            pipe warn $"($name) was left out:\n($err.rendered)"
+            []
+        }
+    }
     | flatten
     | uniq-events
     | sort-by start

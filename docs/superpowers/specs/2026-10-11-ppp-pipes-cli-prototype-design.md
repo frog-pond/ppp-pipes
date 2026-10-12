@@ -293,7 +293,7 @@ Each lives in `pipes/`, declares `output: ["https://pipes.frogpond.tech/stdlib/c
 | `northfield` | Northfield ICS (`catID=41`) | VTIMEZONE with nested RRULEs; `DTSTAMP` with a TZID; HTML and a trailing ` -` in `LOCATION`; a `URL` that points back at the feed (the event page is taken from the description instead) |
 | `stolaf-wp` | Tribe API | Paging through `next_rest_url`, failing past `--max-pages` rather than returning part of the calendar; date filters sent in the calendar's zone; venues, cost, organizers |
 | `presence` | Presence API | UTC instants with no `tz`; organizer as org plus contact person; cover photos (`--photos`) |
-| `all-campus` | `pipe get` on the others | Composition; deduplication on `summary` + `start`; sorted by start |
+| `all-campus` | `pipe get` on the others | Composition; deduplication on `summary` + `start`; sorted by start. A source that fails is left out with a `pipe warn` (stderr under `ppp run`), and the rest still come through |
 
 ## 8. Errors and limits
 
