@@ -18,9 +18,8 @@ This spec covers the first build of ppp-pipes: a Rust core that runs nushell pip
 2. Five more acceptance pipes validate against live sources: Carleton ICS, Northfield ICS, St. Olaf's WordPress Tribe API, Presence, and one pipe that combines the others.
 3. Recurring events expand correctly, including DST changes, EXDATE, RDATE and RECURRENCE-ID overrides.
 4. The same commands work in stock `nu` through `nu_plugin_pipes`, and pipe files run unchanged there.
-5. A spike shows whether the engine cross-compiles for iOS and Android, and at what binary size.
 
-**Out of scope:** the HTTP server, SSE and JSONL streaming, a scheduler, keeping the last good output, record types other than `event`, a UI, Node and mobile bindings, and memory limits per run (§8.2).
+**Out of scope:** the HTTP server, SSE and JSONL streaming, a scheduler, keeping the last good output, record types other than `event`, a UI, Node and mobile bindings (including checking that the engine builds for iOS and Android), and memory limits per run (§8.2).
 
 ---
 
@@ -357,7 +356,6 @@ Unit and integration tests run on saved copies of real feeds. Nothing is mocked.
 
 ## 10. Build order
 
-0. **Mobile spike (throwaway).** Cross-compile a minimal engine (`nu-engine`, `nu-cmd-lang` and a few commands) for `aarch64-apple-ios` and `aarch64-linux-android`. Record whether it builds and how large it is. Report before step 1.
 1. Workspace; `common` and `calendar` schemas; fixtures; schema registry, validator and `serialize`; `ppp validate`.
 2. Engine; `from ics`; `pipes` module with `into event`; `campus-week`; `ppp run`.
 3. `expand rrule`.
