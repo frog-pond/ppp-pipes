@@ -85,7 +85,13 @@
         "cost": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/money" },
         "categories": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/categories" },
         "keywords": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/keywords" },
-        "organizers": { "type": "array", "items": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/agent" } },
+        "organizers": {
+          "type": "array",
+          "items": {
+            "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/agent",
+            "unevaluatedProperties": false
+          }
+        },
         "attendees": {
           "type": "array",
           "items": {

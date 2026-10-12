@@ -60,6 +60,7 @@ const INVALID: &[(&str, &str)] = &[
     ("local-without-tz.json", ""),
     ("missing-id.json", ""),
     ("missing-start.json", ""),
+    ("organizer-extra-field.json", "/organizers/0"),
     ("unknown-field.json", ""),
     ("unknown-tz.json", "/tz"),
 ];

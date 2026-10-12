@@ -153,7 +153,7 @@
       "unevaluatedProperties": false
     },
     "agent": {
-      "description": "A person or an organization, e.g. an organizer or author.",
+      "description": "A person or an organization, e.g. an organizer or author. Left open so uses can add fields (like an attendee's role); each use closes it with unevaluatedProperties.",
       "oneOf": [
         {
           "type": "object",
