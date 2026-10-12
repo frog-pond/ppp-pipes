@@ -42,6 +42,55 @@ fn every_example_is_valid() {
     assert_eq!(checked, 4);
 }
 
+/// Each invalid fixture and the JSON Pointer its one mistake is reported at.
+const INVALID: &[(&str, &str)] = &[
+    ("agent-both.json", "/organizers/0"),
+    ("all-day-with-time.json", "/start"),
+    ("bad-currency.json", "/cost"),
+    ("bad-duration.json", "/duration"),
+    ("bad-geo.json", "/location/place/geo/lat"),
+    ("bad-month.json", "/start"),
+    ("bad-rrule.json", "/rrule"),
+    ("bad-status.json", "/status"),
+    ("bad-type.json", "/type"),
+    ("bad-url.json", "/url"),
+    ("empty-summary.json", "/summary"),
+    ("end-and-duration.json", ""),
+    ("local-exdate-without-tz.json", ""),
+    ("local-without-tz.json", ""),
+    ("missing-id.json", ""),
+    ("missing-start.json", ""),
+    ("unknown-field.json", ""),
+    ("unknown-tz.json", "/tz"),
+];
+
+#[test]
+fn every_invalid_record_fails_where_expected() {
+    let registry = Registry::stdlib().unwrap();
+    for (file, pointer) in INVALID {
+        let errors = errors(&registry, &fixtures("invalid").join(file));
+        assert!(
+            errors.iter().any(|e| e.pointer == *pointer),
+            "{file}: expected an error at {pointer:?}, got {errors:#?}"
+        );
+        assert!(
+            errors.iter().all(|e| e.pointer.starts_with(pointer)),
+            "{file}: errors outside {pointer:?}: {errors:#?}"
+        );
+    }
+}
+
+#[test]
+fn every_invalid_fixture_is_listed() {
+    let mut on_disk: Vec<String> = fs::read_dir(fixtures("invalid"))
+        .unwrap()
+        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .collect();
+    on_disk.sort();
+    let listed: Vec<String> = INVALID.iter().map(|(f, _)| f.to_string()).collect();
+    assert_eq!(on_disk, listed);
+}
+
 #[test]
 fn records_that_are_not_objects_have_no_type() {
     let registry = Registry::stdlib().unwrap();

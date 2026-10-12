@@ -1,0 +1,18 @@
+[
+  {
+    "type": "event",
+    "id": "x@example.edu",
+    "summary": "Chess Club",
+    "start": "2026-09-08T18:00:00",
+    "tz": "America/Chicago",
+    "location": {
+      "place": {
+        "name": "Boe Memorial Chapel",
+        "geo": {
+          "lat": 144.4614,
+          "lon": -93.1822
+        }
+      }
+    }
+  }
+]

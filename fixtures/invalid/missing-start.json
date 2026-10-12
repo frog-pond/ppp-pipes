@@ -1,0 +1,8 @@
+[
+  {
+    "type": "event",
+    "id": "x@example.edu",
+    "summary": "Chess Club",
+    "tz": "America/Chicago"
+  }
+]

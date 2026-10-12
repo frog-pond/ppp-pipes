@@ -1,0 +1,9 @@
+[
+  {
+    "type": "event",
+    "id": "x@example.edu",
+    "summary": "Chess Club",
+    "start": "2026-13-08T18:00:00",
+    "tz": "America/Chicago"
+  }
+]
