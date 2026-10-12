@@ -10,6 +10,12 @@ chrono = "0.4.45"
 clap = { version = "4", features = ["derive"] }
 jiff = { version = "0.2.38", features = ["tzdb-bundle-always"] }
 jsonschema = { version = "0.58.6", default-features = false }
+nu-cmd-lang = "=0.116.1"
+# `os` is needed: other nushell crates turn on nu-protocol's `os` feature, and
+# nu-command does not compile with it on unless its own `os` is on too.
+nu-command = { version = "=0.116.1", default-features = false, features = ["os", "network", "rustls-tls"] }
+nu-engine = "=0.116.1"
+nu-parser = "=0.116.1"
 nu-protocol = { version = "=0.116.1", default-features = false }
 serde_json = "1"
 thiserror = "2"
