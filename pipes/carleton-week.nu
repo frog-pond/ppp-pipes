@@ -16,7 +16,7 @@ export def main [
     --from: datetime          # Start of the window (default: now)
     --source: string = "https://www.carleton.edu/calendar/?loadFeed=calendar&stamp=1714843628"  # The iCalendar feed
 ]: nothing -> table {
-    use pipes *
+    use ppp *
     let start = $from | default (date now)
     let until = $start + $within
     http get --raw $source

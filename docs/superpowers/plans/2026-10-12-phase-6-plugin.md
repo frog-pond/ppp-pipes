@@ -25,7 +25,7 @@ Wren was away and asked for the phases to continue; these are mine to review.
 2. **The plugin's `pipe get` takes `--pipes-dir`** (default `./pipes`, relative to nu's current directory), caches in the user cache directory, and allows 60 seconds.
 3. **In-process plugin tests add `where` and `length`** to `PluginTest`'s engine (it has only the language commands), so tests read like real pipelines — Wren's suggestion.
 4. **End-to-end tests are ignored by default:** they need `nu` 0.116.1 (set `PPP_TEST_NU`). This machine's `nu` on PATH is the Nix 0.115.1; I built 0.116.1 into the session scratchpad to run them.
-5. **Found, not fixed — needs Wren:** typed at a prompt in the repository root, `use pipes *` finds the repo's `pipes/` directory (the acceptance pipes) before the library. Pipe files are unaffected. Fixing it means renaming the module or the directory.
+5. **The library module is now `ppp`** (was `pipes`): typed at a prompt in the repository root, `use pipes *` found the repo's `pipes/` directory (the acceptance pipes) before the library. Wren asked for the fix; renaming the module, not the directory, because `pipes/` is the convention for where pipe files live.
 
 ## Review Focus
 

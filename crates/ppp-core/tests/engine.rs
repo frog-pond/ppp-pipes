@@ -1,4 +1,4 @@
-//! The sandboxed engine: evaluation, the embedded `pipes` module, and the
+//! The sandboxed engine: evaluation, the embedded `ppp` module, and the
 //! command set.
 
 use std::path::Path;
@@ -38,7 +38,7 @@ fn definitions_persist_between_calls() {
 #[test]
 fn the_pipes_module_is_embedded() {
     let mut engine = Engine::new();
-    engine.eval("use pipes *", Value::test_nothing()).unwrap();
+    engine.eval("use ppp *", Value::test_nothing()).unwrap();
 }
 
 #[test]

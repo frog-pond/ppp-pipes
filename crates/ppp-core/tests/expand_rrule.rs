@@ -25,7 +25,7 @@ fn expanded(ics: &str, from: &str, until: &str) -> Vec<Json> {
     let mut engine = Engine::new();
     let rows = engine
         .eval(
-            &format!("use pipes *; $in | from ics | expand rrule --from {from} --until {until} | into event"),
+            &format!("use ppp *; $in | from ics | expand rrule --from {from} --until {until} | into event"),
             Value::test_string(ics),
         )
         .unwrap();

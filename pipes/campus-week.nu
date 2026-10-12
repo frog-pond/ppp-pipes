@@ -19,7 +19,7 @@ export def main [
     --within: duration = 1wk  # How far ahead to look
     --from: datetime          # Start of the window (default: now)
 ]: nothing -> table {
-    use pipes *
+    use ppp *
     let now = $from | default (date now)
     let until = $now + $within
     http get --raw $SOURCE

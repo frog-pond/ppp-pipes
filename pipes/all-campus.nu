@@ -16,7 +16,7 @@ export def main [
     --within: duration = 1wk  # How far ahead to look
     --from: datetime          # Start of the window (default: now)
 ]: nothing -> table {
-    use pipes *
+    use ppp *
     let args = {within: $within} | merge (if $from != null { {from: $from} } else { {} })
     # stolaf-wp first: where St. Olaf's two calendars list the same event,
     # its records (with venues and costs) are the ones kept.

@@ -26,7 +26,7 @@ fn events(ics: &str) -> Vec<Json> {
     let mut engine = Engine::new();
     let rows = engine
         .eval(
-            "use pipes *; $in | from ics | into event --source https://calendar.example.edu/feed.ics",
+            "use ppp *; $in | from ics | into event --source https://calendar.example.edu/feed.ics",
             Value::test_string(ics),
         )
         .unwrap();
@@ -155,7 +155,7 @@ fn a_row_without_a_uid_is_an_error() {
     let ics = "BEGIN:VCALENDAR\nBEGIN:VEVENT\nSUMMARY:Mystery\nDTSTART:20261013T120000Z\nEND:VEVENT\nEND:VCALENDAR\n";
     let err = engine
         .eval(
-            "use pipes *; $in | from ics | into event",
+            "use ppp *; $in | from ics | into event",
             Value::test_string(ics),
         )
         .unwrap_err();
@@ -167,7 +167,7 @@ fn drop_empty_removes_only_empty_values() {
     let mut engine = Engine::new();
     let out = engine
         .eval(
-            "use pipes *; {a: null, b: '', c: [], d: {}, e: 0, f: false, g: 'x', h: [1]} | drop-empty | to nuon",
+            "use ppp *; {a: null, b: '', c: [], d: {}, e: 0, f: false, g: 'x', h: [1]} | drop-empty | to nuon",
             Value::test_nothing(),
         )
         .unwrap();

@@ -24,7 +24,7 @@ fn events(json: &str, reader: &str) -> Vec<Json> {
     let time_fields = &registry.record_type("event").unwrap().time_fields;
     let mut engine = Engine::new();
     let rows = engine
-        .eval(&format!("use pipes *; $in | from json | {reader} | into event --source https://example.edu/feed"), Value::test_string(json))
+        .eval(&format!("use ppp *; $in | from json | {reader} | into event --source https://example.edu/feed"), Value::test_string(json))
         .unwrap();
     rows.as_list()
         .unwrap()
@@ -141,7 +141,7 @@ fn presence_events() {
 #[test]
 fn uniq_events_compares_starts_as_moments() {
     let mut engine = Engine::new();
-    let source = "use pipes *; [
+    let source = "use ppp *; [
         {summary: Concert, start: 2026-10-14T19:30:00-05:00, tz: America/Chicago}
         {summary: Concert, start: 2026-10-15T00:30:00Z, tz: America/Chicago}
         {summary: 'Fall Break', start: 2026-10-10T00:00:00-05:00, all_day: true, tz: America/Chicago}

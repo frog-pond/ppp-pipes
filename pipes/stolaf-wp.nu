@@ -18,7 +18,7 @@ export def main [
     --max-pages: int = 20     # Safety cap on requests
     --source: string = "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events"  # The API's events URL
 ]: nothing -> table {
-    use pipes *
+    use ppp *
     let start = $from | default (date now)
     let until = $start + $within
     # The API reads its date filters in the calendar's own zone and compares

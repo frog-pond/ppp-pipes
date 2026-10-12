@@ -12,6 +12,6 @@ export const pipe = {
 export def main [
     --url: string  # The feed to read
 ]: nothing -> table {
-    use pipes *
+    use ppp *
     http get --raw $url | from ics | into event --source $url
 }

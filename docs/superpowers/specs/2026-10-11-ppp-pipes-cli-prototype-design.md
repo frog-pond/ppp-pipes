@@ -34,7 +34,7 @@ This spec covers the first build of ppp-pipes: a Rust core that runs nushell pip
 | chrono | Only at two boundaries: nushell's `Value::Date`, and the `rrule` crate | Both are forced on us; a jiff RRULE expander would be a project of its own |
 | Recurrence | Wrap the `rrule` crate (0.14) in one module | Mature, pure Rust; its chrono types do not leak out |
 | Time formatting | Driven by the schema, at the boundary (§5.3) | About 25 record types are planned, and the schema already says which fields are dates, local times or instants |
-| Command names | `into event`, `expand rrule`, `from ics`, … with no `pipes-` prefix | Nushell modules already namespace (`use pipes` gives `pipes into event`); a test catches clashes with built-ins |
+| Command names | `into event`, `expand rrule`, `from ics`, … with no `pipes-` prefix | Nushell modules already namespace (`use ppp` gives `ppp into event`); a test catches clashes with built-ins |
 | URL handling | Nushell's own `url parse --base` and `url join` | Already resolves relative URLs and builds queries |
 | Stock `nu` support | A plugin, `nu_plugin_pipes`, that links the core | Each command has one implementation and two thin wrappers (§4.3) |
 
@@ -60,7 +60,7 @@ crates/
 stdlib/
   common.schema.json
   calendar.schema.json
-  pipes/mod.nu                 the `pipes` nushell module (§6)
+  pipes/mod.nu                 the `ppp` nushell module (§6)
 pipes/                         acceptance pipes (§7)
 fixtures/
   ics/                         KDL examples as .ics, saved live feeds, edge cases
@@ -71,7 +71,7 @@ kdl-calendar-schema/           reference: field set and examples
 nushell-ics/ics.nu             reference: the parser `from ics` ports
 ```
 
-`stdlib/` is the single copy of the schemas and the `pipes` module. The binaries embed it with `include_str!`. Stock `nu` users add `stdlib/` to `NU_LIB_DIRS`.
+`stdlib/` is the single copy of the schemas and the `ppp` module. The binaries embed it with `include_str!`. Stock `nu` users add `stdlib/` to `NU_LIB_DIRS`.
 
 The workspace pins nushell crates to 0.116.1. The plugin protocol requires the plugin and `nu` to match, so upgrading nushell means rebuilding both.
 
@@ -81,7 +81,7 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
 
 ### 4.1 `ppp-core`
 
-- **`engine`** builds a nushell `EngineState` from a hand-picked command list: `nu-cmd-lang`, a chosen subset of `nu-command`, and our commands. It leaves out external commands (`^cmd`, `run-external`), all filesystem commands (`open`, `ls`, `save`, `rm`, …), `cd` and plugins. The engine itself still reads pipe files and `stdlib/` when it resolves `use`. Our `http get` replaces the built-in one. The embedded `stdlib/` is on the module path, so `use pipes *` works. `$env.PWD` is `/`, because some commands (`http get` among them) need a working directory and pipes have no filesystem to work in. The engine installs nushell's default rustls crypto provider so `http get` can use TLS. `nu-command` is built with its `os` feature: other nushell crates turn on `nu-protocol`'s `os` feature, and `nu-command` does not compile unless its own matches.
+- **`engine`** builds a nushell `EngineState` from a hand-picked command list: `nu-cmd-lang`, a chosen subset of `nu-command`, and our commands. It leaves out external commands (`^cmd`, `run-external`), all filesystem commands (`open`, `ls`, `save`, `rm`, …), `cd` and plugins. The engine itself still reads pipe files and `stdlib/` when it resolves `use`. Our `http get` replaces the built-in one. The embedded `stdlib/` is on the module path, so `use ppp *` works. `$env.PWD` is `/`, because some commands (`http get` among them) need a working directory and pipes have no filesystem to work in. The engine installs nushell's default rustls crypto provider so `http get` can use TLS. `nu-command` is built with its `os` feature: other nushell crates turn on `nu-protocol`'s `os` feature, and `nu-command` does not compile unless its own matches.
 - **`pipe`** loads a `.nu` file with `use`, which evaluates its consts without running `main`. It then reads a `PipeInfo`:
 
   | Field | Source |
@@ -141,7 +141,7 @@ A standard nushell plugin that offers every command in §4.2. In stock `nu`:
 
 ```nu
 plugin add ~/.cargo/bin/nu_plugin_pipes; plugin use pipes
-use pipes *
+use ppp *
 http get $url | from ics | expand rrule --from (date now) --until ((date now) + 1wk) | into event | validate
 pipe get campus-week {days: 3}
 ```
@@ -150,7 +150,9 @@ Pipe files run unchanged: `use pipes/campus-week.nu; campus-week --within 3day`.
 
 Outside the runner there is no sandbox, and `http get` is nushell's own, without our cache. `pipe get` is the exception: it runs the full sandboxed engine inside the plugin process, with the cache (in the user cache directory), validation and a 60-second limit. In the plugin it takes `--pipes-dir`, relative to nushell's current directory (default `./pipes`).
 
-The plugin is built against nushell 0.116.1 and loads only into that version. Pipe files' own `use pipes *` resolves next to the file first, then in `NU_LIB_DIRS`; but typed at a prompt in the repository root, `use pipes *` finds the repository's `pipes/` directory (the acceptance pipes) before the library, and fails.
+The plugin is built against nushell 0.116.1 and loads only into that version.
+
+The library module is called `ppp`, not `pipes`, because nushell's `use` looks for a directory of that name in the current directory before `NU_LIB_DIRS`, and `pipes/` is where pipe files conventionally live.
 
 ---
 
@@ -231,7 +233,7 @@ A run-wide stack of pipe names catches cycles. The error shows the chain: `all-c
 
 ---
 
-## 6. Schemas and the `pipes` module
+## 6. Schemas and the `ppp` module
 
 ### 6.1 Schemas
 
@@ -321,7 +323,7 @@ Unit and integration tests run on saved copies of real feeds. Nothing is mocked.
 - **`expand rrule`**: RRULE with EXDATE and RDATE; RECURRENCE-ID overrides, including one moved into the window; a weekly event across both DST changes; a time in the spring-forward gap and in the fall-back hour; floating and all-day masters; the 10,000 cap.
 - **`serialize`**: each of the three time formats; the `when` rule; a time-field map built from every stdlib type; the walker's error on an unsupported keyword.
 - **Schemas**: every `fixtures/examples/*.json` passes. Every `fixtures/invalid/*.json` fails at its expected JSON Pointer. These are written fresh, one mistake per file, because `invalid/broken.kdl` from the KDL project is missing.
-- **`pipes` module**: `from tribe-events`, `from presence` and `into event` run in the embedded engine on saved API responses.
+- **`ppp` module**: `from tribe-events`, `from presence` and `into event` run in the embedded engine on saved API responses.
 - **Both wrappers**: each Rust command runs through its in-process `Command` and through `nu-plugin-test-support`, with the same inputs and expected outputs.
 - **Sandbox**: `^ls`, `run-external`, `save`, `cd` and `rm` are not registered.
 - **Names**: none of our commands shadows a nushell built-in.
@@ -333,7 +335,7 @@ Unit and integration tests run on saved copies of real feeds. Nothing is mocked.
 ## 10. Build order
 
 1. Workspace; `common` and `calendar` schemas; fixtures; schema registry, validator and `serialize`; `ppp validate`.
-2. Engine; `from ics`; `pipes` module with `into event`; `campus-week`; `ppp run`.
+2. Engine; `from ics`; `ppp` module with `into event`; `campus-week`; `ppp run`.
 3. `expand rrule`.
 4. HTTP cache; `ppp info`; `pipe get`; sandbox and limits.
 5. `html to-text`; `from tribe-events`; `from presence`; the other acceptance pipes; `all-campus`.

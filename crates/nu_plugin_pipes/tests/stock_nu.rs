@@ -16,9 +16,9 @@ fn repo() -> PathBuf {
 }
 
 /// Runs `source` in `nu` with only our plugin loaded and `stdlib/` as a
-/// library directory, and returns stdout. It runs outside the repository:
-/// from the repository root, `use pipes *` would find the repo's own
-/// `pipes/` directory (the acceptance pipes) before the library.
+/// library directory, from the repository root, and returns stdout. The
+/// root has a `pipes/` directory (the acceptance pipes), which must not
+/// shadow the library module.
 fn nu(source: &str) -> String {
     let nu = std::env::var("PPP_TEST_NU").unwrap_or_else(|_| "nu".into());
     let version = Command::new(&nu)
@@ -42,7 +42,7 @@ fn nu(source: &str) -> String {
         .arg(repo().join("stdlib"))
         .arg("-c")
         .arg(source)
-        .current_dir(env!("CARGO_TARGET_TMPDIR"))
+        .current_dir(repo())
         .output()
         .unwrap();
     assert!(
@@ -62,7 +62,7 @@ fn json(text: &str) -> serde_json::Value {
 fn our_commands_work_in_stock_nu() {
     let repo = repo().display().to_string();
     let out = nu(&format!(
-        "use pipes *
+        "use ppp *
         open --raw {repo}/fixtures/ics/campus-events.ics
         | from ics
         | expand rrule --from 2026-11-01T00:00:00Z --until 2026-12-01T00:00:00Z

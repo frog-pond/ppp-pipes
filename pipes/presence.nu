@@ -17,7 +17,7 @@ export def main [
     --source: string = "https://api.presence.io/stolaf/v1/events"  # The API's events URL
     --photos: string = "https://stolaf-cdn.presence.io/event-photos/09ddef77-5009-4348-8540-c9bfc6ade6bc/"  # Where cover photos live
 ]: nothing -> table {
-    use pipes *
+    use ppp *
     let start = $from | default (date now)
     http get $source
     | from presence --photos $photos

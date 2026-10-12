@@ -4,7 +4,7 @@
 //! commands, the data commands listed in `bind_data_commands`, and our own.
 //! Nothing that runs external programs or touches the filesystem is
 //! registered, so a pipe that tries gets "command not found". The `pipes`
-//! module is embedded and loaded as a virtual directory, so `use pipes *`
+//! module is embedded and loaded as a virtual directory, so `use ppp *`
 //! works without files on disk.
 
 use std::sync::{Arc, Mutex};
@@ -18,8 +18,8 @@ use nu_protocol::{PipelineData, Signals, Span, Value, format_cli_error};
 use crate::commands::{self, Context};
 use crate::host::Host;
 
-/// The embedded `pipes` nushell module.
-const PIPES_MODULE: &str = include_str!("../../../stdlib/pipes/mod.nu");
+/// The embedded `ppp` nushell module.
+const PPP_MODULE: &str = include_str!("../../../stdlib/ppp/mod.nu");
 
 /// A rendered nushell diagnostic, ready to print.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -51,11 +51,10 @@ impl Engine {
             let mut working_set = StateWorkingSet::new(&state);
             bind_data_commands(&mut working_set);
             commands::bind(&mut working_set, &context);
-            let file = working_set.add_file("pipes/mod.nu", PIPES_MODULE.as_bytes());
+            let file = working_set.add_file("ppp/mod.nu", PPP_MODULE.as_bytes());
             let module_file =
-                working_set.add_virtual_path("pipes/mod.nu".into(), VirtualPath::File(file));
-            let _ =
-                working_set.add_virtual_path("pipes".into(), VirtualPath::Dir(vec![module_file]));
+                working_set.add_virtual_path("ppp/mod.nu".into(), VirtualPath::File(file));
+            let _ = working_set.add_virtual_path("ppp".into(), VirtualPath::Dir(vec![module_file]));
             working_set.render()
         };
         state
