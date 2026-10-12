@@ -200,17 +200,20 @@ Inside a pipe, times are nushell `datetime` values, so `where start < (date now)
 
 ### 5.4 `expand rrule`
 
+`expand rrule` works on `from ics` rows, before `into event`.
+
 - `--from` and `--until` are required, because rules can run forever.
-- Rows without `rrule` or `rdates` pass through unchanged.
-- Each master row becomes one row per occurrence that starts in `[from, until)`:
-  - `id` is `<uid>_<start as UTC basic format>`, e.g. `abc_20261013T170000Z`. That is the form Google Calendar uses, so expanded feeds and Google's pre-expanded feeds (Carleton) produce the same ids.
-  - `series` is the master's `uid`.
-  - `end` keeps the master's length.
-  - `rrule`, `rdates` and `exdates` are removed.
-- An override row (one with `recurrence_id`) replaces the matching occurrence. An override that moves an occurrence into the window counts even if the original date lies outside it.
-- Expansion runs in wall time in the event's `tz`, so an 18:00 event stays at 18:00 across DST. Floating events stay floating, and all-day events stay all-day.
-- It fails after 10,000 occurrences in one series.
-- It only expands. To filter by window, use `where`.
+- Rows without `rrule` or `rdates` pass through unchanged. That includes override rows (those with `recurrence_id`).
+- Each master row becomes one row per occurrence that overlaps `[from, until)`, the same rule `during` uses, so an occurrence already under way counts. An occurrence with no `end` is a moment and must start inside the window. Each occurrence row:
+  - has `start` at the occurrence and `end` at the same length after it;
+  - has `recurrence_id` set to its original start, so `into event` gives it the id `<uid>_<start as UTC basic format>` (e.g. `abc_20261013T170000Z`) and `series: <uid>`. That is the form Google Calendar uses, so expanded feeds and Google's pre-expanded feeds (Carleton) produce the same ids;
+  - has no `rrule`, `rdates` or `exdates`.
+- DTSTART always counts as an occurrence, even when the rule would skip it (RFC 5545 §3.8.5.3).
+- An occurrence that has an override row in the input (same `uid`, `recurrence_id` equal to the occurrence's start) is left out, since the override row stands in for it. An override that moves an occurrence into or out of the window is handled by whatever filters the rows afterwards, usually `during`.
+- Expansion runs in wall time in the row's `tz` (UTC when it has none), so an 18:00 event stays at 18:00 across DST. A wall time that falls in a spring-forward gap moves later by the gap, as RFC 5545 says. All-day events stay all-day.
+- Rules are read strictly: an `UNTIL` must be UTC when `DTSTART` has a zone, as RFC 5545 requires.
+- It fails after 10,000 occurrences of one series inside the window. Occurrences before the window don't count, so a long-running series is fine.
+- It only expands. To filter by window, use `during`.
 
 If a pipe skips `expand rrule`, the master keeps its `rrule`, and `into event` gives each override row the same `<uid>_<instant>` id and `series`. Ids match either way.
 
