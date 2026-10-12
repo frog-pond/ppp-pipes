@@ -190,6 +190,10 @@ fn freshness_and_max_age() {
         Some(SignedDuration::from_secs(600))
     );
     assert_eq!(max_age("max-age=600, no-cache"), None);
+    assert_eq!(
+        max_age("max-age=\"60\""),
+        Some(SignedDuration::from_secs(60))
+    );
     assert_eq!(max_age("no-store"), None);
     assert_eq!(max_age("private"), None);
 }

@@ -106,7 +106,7 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
 | `from ics [--tz]` | string → table | §5.2 |
 | `expand rrule --from <dt> --until <dt>` | table → table | §5.4 |
 | `html to-text` | string → string | Strips tags and decodes entities (`&amp;`, `&#8211;`); crate chosen in the plan |
-| `http get <url> [--raw]` | → any | Replaces the built-in: http(s) only, through the cache, with the size cap. JSON (by `Content-Type`) is parsed unless `--raw`; other bodies are text when UTF-8, else binary |
+| `http get <url> [--raw]` | → any | Replaces the built-in: http(s) only, through the cache, with the size cap. JSON (by `Content-Type`) is parsed unless `--raw`, and an empty JSON body is `null`; other bodies are text when UTF-8, else binary |
 | `pipe get <name> [args]` | → table | §5.5 |
 | `pipe warn <message>` | any → any | Reports a warning (stderr under `ppp run`) and passes its input on |
 | `query html` | string → any | CSS selector queries, with the same flags and results as nushell's `query web`. Adapted from `nu_plugin_query` (MIT) rather than depending on it, because that crate's `webpage` dependency links libcurl and OpenSSL. `--inspect` output goes where warnings go |
