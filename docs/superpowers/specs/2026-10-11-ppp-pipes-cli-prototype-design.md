@@ -247,7 +247,7 @@ It drops the KDL schema's `color`. Records are closed (`unevaluatedProperties: f
 
 Turning a source into events happens in three layers, each with one job:
 
-1. **Format readers** turn a vendor format into one shared intermediate table: the `from ics` columns plus `description_html`, `image`, `cost`, `organizers`, `venue` and `links`.
+1. **Format readers** turn a vendor format into one shared intermediate table: the `from ics` columns plus optional `description_html`, `excerpt`, `place` (a stdlib place), `organizers` (stdlib agents), `images`, `links`, `cost`, `keywords`, `online`, `attendance`, `featured`, `hidden` and `extra`.
    - `from ics` (Rust)
    - `from tribe-events` (nu): The Events Calendar's WordPress REST API, used by many WordPress sites
    - `from presence` (nu): Presence's events API, used by many campuses
@@ -268,64 +268,22 @@ The rule: if a second source would hit a problem, the fix goes in layer 1 or 2. 
 
 `during <from> <until>` keeps rows whose `start`–`end` span overlaps the window, so events already under way are kept; a row with no `end` is a moment at `start`. Pipes use it for "what's on this week" windows.
 
-`drop-empty` removes `null`, `""`, `[]` and `{}`. This covers Tribe's `venue: []` and `image: false`, which `from tribe-events` turns into `null` first.
+`drop-empty` removes `null`, `""`, `[]` and `{}`. `from tribe-events` treats Tribe's `venue: []` and `image: false` as absent, reads times from its `utc_*` fields (a bare local time would be read in the machine's zone), turns all-day `23:59:59` ends into exclusive next-day ends, and maps country names to ISO codes (US, CA) or drops them.
 
 ---
 
 ## 7. Acceptance pipes
 
-Each lives in `pipes/` and declares `output: ["https://pipes.frogpond.tech/stdlib/calendar/1#event"]`.
+Each lives in `pipes/`, declares `output: ["https://pipes.frogpond.tech/stdlib/calendar/1#event"]`, and takes `--within <duration>` and `--from <datetime>` (default: now) for its window. Those reading one source also take `--source <url>`, defaulting to the live URL, so tests can point them at a local server.
 
 | Pipe | Source | What it proves |
 |---|---|---|
-| `campus-week` | St. Olaf ICS (`stolaf.edu/apps/calendar/ical.cfm`): 200 events, mostly `TZID=America/Chicago`, 14 all-day | TZID times, all-day dates, `GEO`, `CATEGORIES` |
-| `carleton-week` | Carleton ICS: 2,392 events, 3.2 MB | Floating times plus `X-WR-TIMEZONE`; HTML in `DESCRIPTION`; Google's pre-expanded recurrences out to 2099; the same event under several UIDs; parsing 3 MB quickly |
-| `northfield` | Northfield ICS (`catID=41`): 8 events | VTIMEZONE with nested RRULEs; `DTSTAMP` with a TZID; HTML and trailing junk in `LOCATION`; a relative `URL` |
-| `stolaf-wp` | Tribe API (`wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events`): 632 events over 13 pages | Paging; venues; cost; organizers; images; virtual events |
-| `presence` | `api.presence.io/stolaf/v1/events`: 440 events | UTC instants with no `tz`; organizer as person plus org; image URLs |
-| `all-campus` | `pipe get` on the others | Composition; deduplication on `summary` + `start` |
-
-**`campus-week`** becomes:
-
-```nu
-http get "https://www.stolaf.edu/apps/calendar/ical.cfm"
-| from ics
-| expand rrule --from (date now) --until ((date now) + ($days * 1day))
-| where start < ((date now) + ($days * 1day))
-| into event
-```
-
-**`stolaf-wp`** asks the API for a date window and follows `next_rest_url` with `generate`. Running past `--max-pages` is an error, because a partial calendar that looks complete is worse than a failed run:
-
-```nu
-export def main [
-    --days: int = 7        # How far ahead to look
-    --max-pages: int = 20  # Safety cap on requests
-]: nothing -> table {
-    let first = "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events"
-        | url parse
-        | merge {params: {
-            per_page: 50
-            start_date: (date now | format date "%Y-%m-%d")
-            end_date: ((date now) + ($days * 1day) | format date "%Y-%m-%d 23:59:59")
-        }}
-        | url join
-    let pages = generate {|url|
-        let page = http get $url
-        if $page.next_rest_url? == null { {out: $page} } else { {out: $page, next: $page.next_rest_url} }
-    } $first
-    | take ($max_pages + 1)
-    | collect
-    if ($pages | length) > $max_pages { error make {msg: $"more than ($max_pages) pages; raise --max-pages"} }
-    $pages | get events | flatten | from tribe-events | into event
-}
-```
-
-(`url join` refuses a record that has both `query` and `params`. Pipes that start from a URL with a query string must `reject query` before merging `params`.)
-
-**`presence`** builds `url` as `https://stolaf.presence.io/event/<uri>` and `image.url` as `https://stolaf-cdn.presence.io/event-photos/09ddef77-5009-4348-8540-c9bfc6ade6bc/<photoUriWithVersion>`. Both were checked against live responses. We have not confirmed what the UUID in the photo path identifies; `from presence` takes the photo base as a parameter so other campuses can supply their own.
-
----
+| `campus-week` | St. Olaf ICS | TZID times, all-day dates, `GEO`, `CATEGORIES`, `expand rrule`, `during` |
+| `carleton-week` | Carleton ICS (2,392 events, 3.2 MB) | Floating times plus `X-WR-TIMEZONE`; HTML in `DESCRIPTION` (renamed to `description_html`); HTML-escaped URLs; the same event under several UIDs (`uniq-by summary start`) |
+| `northfield` | Northfield ICS (`catID=41`) | VTIMEZONE with nested RRULEs; `DTSTAMP` with a TZID; HTML and a trailing ` -` in `LOCATION`; a `URL` that points back at the feed (the event page is taken from the description instead) |
+| `stolaf-wp` | Tribe API | Paging through `next_rest_url`, failing past `--max-pages` rather than returning part of the calendar; date filters sent in the calendar's zone; venues, cost, organizers |
+| `presence` | Presence API | UTC instants with no `tz`; organizer as org plus contact person; cover photos (`--photos`) |
+| `all-campus` | `pipe get` on the others | Composition; deduplication on `summary` + `start`; sorted by start |
 
 ## 8. Errors and limits
 
