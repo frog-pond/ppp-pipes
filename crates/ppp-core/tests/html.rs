@@ -34,6 +34,33 @@ fn a_lone_less_than_is_text() {
 }
 
 #[test]
+fn comments_and_cdata_end_at_their_own_close() {
+    assert_eq!(to_text("a<!-- x > y -->b"), "ab");
+    assert_eq!(to_text("a<![CDATA[ x > y ]]>b"), "ab");
+}
+
+#[test]
+fn a_quoted_greater_than_does_not_end_a_tag() {
+    assert_eq!(to_text(r#"<a title="x > y" href='p>q'>link</a>"#), "link");
+}
+
+#[test]
+fn only_html_element_names_start_tags() {
+    assert_eq!(to_text("x<y and z>w"), "x<y and z>w");
+    assert_eq!(to_text("a<o:p></o:p>b<my-widget>c</my-widget>"), "abc");
+}
+
+#[test]
+fn table_cells_stay_apart() {
+    assert_eq!(
+        to_text(
+            "<table><tr><td>Mon</td><td>9am</td></tr><tr><th>Tue</th><th>10am</th></tr></table>"
+        ),
+        "Mon 9am\nTue 10am"
+    );
+}
+
+#[test]
 fn whitespace_is_tidied() {
     assert_eq!(to_text("  a   b \n\n\n\n c  "), "a b\n\nc");
     assert_eq!(to_text("<div>  </div>"), "");
