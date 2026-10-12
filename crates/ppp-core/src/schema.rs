@@ -42,7 +42,7 @@ pub struct RecordError {
 pub struct RecordType {
     /// The value of the record's `type` field, e.g. `event`.
     pub name: String,
-    /// `<schema $id>#<anchor>`, e.g. `https://pipes.dev/stdlib/calendar/1#event`.
+    /// `<schema $id>#<anchor>`, e.g. `https://pipes.frogpond.tech/stdlib/calendar/1#event`.
     pub uri: String,
     validator: jsonschema::Validator,
 }

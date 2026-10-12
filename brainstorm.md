@@ -64,8 +64,8 @@ JSON Schema's `format: "date-time"` follows RFC 3339, which **requires** an offs
 
 This uses JSON Schema's own mechanism:
 
-- **Each schema has an `$id` URI** with the major version in it, like `https://pipes.dev/stdlib/common/1`. A breaking change gets a new URI. (The host name is a placeholder.)
-- **`$ref` works across schemas**: `{"$ref": "https://pipes.dev/stdlib/common/1#/$defs/person"}`.
+- **Each schema has an `$id` URI** with the major version in it, like `https://pipes.frogpond.tech/stdlib/common/1`. A breaking change gets a new URI.
+- **`$ref` works across schemas**: `{"$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/person"}`.
 - **Schemas are resolved from a registry, never fetched.** The validator is preloaded with every stdlib schema, keyed by `$id`, and an unknown URI is an error. Validation stays offline and deterministic.
 - **Bundling** (2020-12 compound documents) is available for anyone who wants a single file, using standard tools.
 - **Building one record type from another**, such as an athletics `game` from a calendar `event`: `allOf: [{"$ref": "…/calendar/1#event"}]` plus the extra properties, with `unevaluatedProperties: false` so the combined type stays closed.
@@ -89,7 +89,7 @@ Whatever describes a pipe rather than a record lives on the pipe or with the hos
 
 ```json
 { "pipe": "campus-week", "title": "This week on campus", "fetched": "2026-10-12T00:00:00Z",
-  "output": ["https://pipes.dev/stdlib/calendar/1#event"],
+  "output": ["https://pipes.frogpond.tech/stdlib/calendar/1#event"],
   "records": [ … ] }
 ```
 
@@ -117,7 +117,7 @@ Records are closed (`unevaluatedProperties: false`), so typos fail validation. E
 
 ### 1.6 Versioning and record type names
 
-The major version is part of the schema's `$id` (`…/calendar/1`). Minor and patch versions go in the schema's `"version"` annotation. Each record type's `$def` has an `$anchor` equal to its `type`, so `https://pipes.dev/stdlib/calendar/1#event` names the event shape. A pipe declares the record types it emits as a list of these URIs (§6.1), and validation picks the right `$def` from each record's `type`. Because record type names are unique across the stdlib, `type` alone is unambiguous.
+The major version is part of the schema's `$id` (`…/calendar/1`). Minor and patch versions go in the schema's `"version"` annotation. Each record type's `$def` has an `$anchor` equal to its `type`, so `https://pipes.frogpond.tech/stdlib/calendar/1#event` names the event shape. A pipe declares the record types it emits as a list of these URIs (§6.1), and validation picks the right `$def` from each record's `type`. Because record type names are unique across the stdlib, `type` alone is unambiguous.
 
 ### 1.7 A common "item" projection
 
@@ -626,7 +626,7 @@ A pipe is a `.nu` module, so it gets real tooling (nu LSP, syntax highlighting, 
 
 ```nu
 export const pipe = {
-    output: ["https://pipes.dev/stdlib/calendar/1#event"]
+    output: ["https://pipes.frogpond.tech/stdlib/calendar/1#event"]
     refresh: 1hr
 }
 

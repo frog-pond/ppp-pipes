@@ -14,7 +14,7 @@ Every code block below was compiled and tested in a scratch workspace before thi
 
 ## Global Constraints
 
-- JSON Schema draft **2020-12**; schema `$id`s are `https://pipes.dev/stdlib/<name>/1` (host name is a placeholder).
+- JSON Schema draft **2020-12**; schema `$id`s are `https://pipes.frogpond.tech/stdlib/<name>/1`.
 - `stdlib/` holds the only copy of each schema; Rust embeds it with `include_str!`. Validation never fetches: `jsonschema` is built with `default-features = false` and `.offline()`.
 - Format assertion is on, and schemas also carry `pattern`s, so results don't depend on validator settings.
 - Records are closed (`unevaluatedProperties: false`) except for the open `extra` object.
@@ -438,7 +438,7 @@ Expected: compile error, `unresolved import ppp_core::schema::RecordError` (and 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://pipes.dev/stdlib/common/1",
+  "$id": "https://pipes.frogpond.tech/stdlib/common/1",
   "title": "Shared definitions for stdlib record types",
   "version": "1.0.0",
   "$defs": {
@@ -677,7 +677,7 @@ Expected: compile error, `unresolved import ppp_core::schema::RecordError` (and 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://pipes.dev/stdlib/calendar/1",
+  "$id": "https://pipes.frogpond.tech/stdlib/calendar/1",
   "title": "Calendar record types",
   "version": "1.0.0",
   "$defs": {
@@ -686,7 +686,7 @@ Expected: compile error, `unresolved import ppp_core::schema::RecordError` (and 
       "description": "A calendar event, modeled on iCalendar VEVENT.",
       "type": "object",
       "allOf": [
-        { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/record" },
+        { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/record" },
         {
           "if": { "properties": { "partial": { "const": true } }, "required": ["partial"] },
           "else": { "required": ["summary", "start"] }
@@ -698,47 +698,47 @@ Expected: compile error, `unresolved import ppp_core::schema::RecordError` (and 
           "if": { "properties": { "all_day": { "const": true } }, "required": ["all_day"] },
           "then": {
             "properties": {
-              "start": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/date" },
-              "end": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/date" }
+              "start": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/date" },
+              "end": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/date" }
             }
           }
         },
         {
-          "if": { "properties": { "start": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/local-date-time" } }, "required": ["start"] },
+          "if": { "properties": { "start": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/local-date-time" } }, "required": ["start"] },
           "then": { "required": ["tz"] }
         },
         {
-          "if": { "properties": { "end": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/local-date-time" } }, "required": ["end"] },
+          "if": { "properties": { "end": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/local-date-time" } }, "required": ["end"] },
           "then": { "required": ["tz"] }
         },
         {
-          "if": { "properties": { "recurrence_id": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/local-date-time" } }, "required": ["recurrence_id"] },
+          "if": { "properties": { "recurrence_id": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/local-date-time" } }, "required": ["recurrence_id"] },
           "then": { "required": ["tz"] }
         },
         {
-          "if": { "properties": { "rdates": { "contains": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/local-date-time" } } }, "required": ["rdates"] },
+          "if": { "properties": { "rdates": { "contains": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/local-date-time" } } }, "required": ["rdates"] },
           "then": { "required": ["tz"] }
         },
         {
-          "if": { "properties": { "exdates": { "contains": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/local-date-time" } } }, "required": ["exdates"] },
+          "if": { "properties": { "exdates": { "contains": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/local-date-time" } } }, "required": ["exdates"] },
           "then": { "required": ["tz"] }
         }
       ],
       "properties": {
         "type": { "const": "event" },
-        "summary": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/text" },
-        "start": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/when" },
-        "end": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/when" },
-        "duration": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/duration" },
+        "summary": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/text" },
+        "start": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/when" },
+        "end": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/when" },
+        "duration": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/duration" },
         "all_day": { "type": "boolean" },
-        "tz": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/tz" },
+        "tz": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/tz" },
         "status": { "enum": ["tentative", "confirmed", "cancelled"] },
         "location": {
           "type": "object",
           "properties": {
-            "name": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/text" },
-            "place": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/place" },
-            "geo": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/geo" }
+            "name": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/text" },
+            "place": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/place" },
+            "geo": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/geo" }
           },
           "anyOf": [{ "required": ["name"] }, { "required": ["place"] }],
           "unevaluatedProperties": false
@@ -747,27 +747,27 @@ Expected: compile error, `unresolved import ppp_core::schema::RecordError` (and 
         "online": {
           "type": "object",
           "properties": {
-            "url": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/url" },
-            "platform": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/text" }
+            "url": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/url" },
+            "platform": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/text" }
           },
           "required": ["url"],
           "unevaluatedProperties": false
         },
-        "excerpt": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/text" },
-        "description": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/text" },
-        "content": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/content" },
-        "url": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/url" },
-        "links": { "type": "array", "items": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/link" } },
-        "images": { "type": "array", "items": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/image" } },
-        "cost": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/money" },
-        "categories": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/categories" },
-        "keywords": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/keywords" },
-        "organizers": { "type": "array", "items": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/agent" } },
+        "excerpt": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/text" },
+        "description": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/text" },
+        "content": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/content" },
+        "url": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/url" },
+        "links": { "type": "array", "items": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/link" } },
+        "images": { "type": "array", "items": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/image" } },
+        "cost": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/money" },
+        "categories": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/categories" },
+        "keywords": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/keywords" },
+        "organizers": { "type": "array", "items": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/agent" } },
         "attendees": {
           "type": "array",
           "items": {
             "type": "object",
-            "allOf": [{ "$ref": "https://pipes.dev/stdlib/common/1#/$defs/agent" }],
+            "allOf": [{ "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/agent" }],
             "properties": {
               "role": { "enum": ["chair", "required", "optional"] },
               "rsvp": { "enum": ["needs-action", "accepted", "declined", "tentative"] }
@@ -775,25 +775,25 @@ Expected: compile error, `unresolved import ppp_core::schema::RecordError` (and 
             "unevaluatedProperties": false
           }
         },
-        "rrule": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/rrule" },
-        "rdates": { "type": "array", "items": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/when" } },
-        "exdates": { "type": "array", "items": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/when" } },
-        "series": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/text" },
-        "recurrence_id": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/when" },
+        "rrule": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/rrule" },
+        "rdates": { "type": "array", "items": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/when" } },
+        "exdates": { "type": "array", "items": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/when" } },
+        "series": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/text" },
+        "recurrence_id": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/when" },
         "reminders": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "before": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/duration" },
+              "before": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/duration" },
               "method": { "enum": ["display", "email"] }
             },
             "required": ["before"],
             "unevaluatedProperties": false
           }
         },
-        "created": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/created" },
-        "modified": { "$ref": "https://pipes.dev/stdlib/common/1#/$defs/modified" },
+        "created": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/created" },
+        "modified": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/modified" },
         "featured": { "type": "boolean" },
         "hidden": { "type": "boolean" }
       },
@@ -852,7 +852,7 @@ pub struct RecordError {
 pub struct RecordType {
     /// The value of the record's `type` field, e.g. `event`.
     pub name: String,
-    /// `<schema $id>#<anchor>`, e.g. `https://pipes.dev/stdlib/calendar/1#event`.
+    /// `<schema $id>#<anchor>`, e.g. `https://pipes.frogpond.tech/stdlib/calendar/1#event`.
     pub uri: String,
     validator: jsonschema::Validator,
 }
@@ -1439,18 +1439,18 @@ fn doc_with(props: Json, extra: Json) -> Json {
         .extend(extra.as_object().unwrap().clone());
     json!({
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "https://pipes.dev/test/1",
+        "$id": "https://pipes.frogpond.tech/test/1",
         "$defs": { "thing": def }
     })
 }
 
-const C: &str = "https://pipes.dev/stdlib/common/1#/$defs";
+const C: &str = "https://pipes.frogpond.tech/stdlib/common/1#/$defs";
 
 #[test]
 fn event_time_fields() {
     let registry = Registry::stdlib().unwrap();
     let event = registry.record_type("event").unwrap();
-    assert_eq!(event.uri, "https://pipes.dev/stdlib/calendar/1#event");
+    assert_eq!(event.uri, "https://pipes.frogpond.tech/stdlib/calendar/1#event");
     assert_eq!(
         event.time_fields.paths(),
         vec![
@@ -1532,7 +1532,7 @@ fn conflicting_time_forms_are_refused() {
 fn recursive_schemas_end() {
     let doc = json!({
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "https://pipes.dev/test/1",
+        "$id": "https://pipes.frogpond.tech/test/1",
         "$defs": {
             "node": {
                 "$anchor": "node",
@@ -1876,7 +1876,7 @@ use serde_json::Value as Json;
 
 use crate::time_fields::{self, Documents, TimeTree};
 
-pub const COMMON_ID: &str = "https://pipes.dev/stdlib/common/1";
+pub const COMMON_ID: &str = "https://pipes.frogpond.tech/stdlib/common/1";
 
 /// The stdlib schema documents, in the order they are registered.
 const STDLIB: &[&str] = &[
@@ -1920,7 +1920,7 @@ pub struct RecordError {
 pub struct RecordType {
     /// The value of the record's `type` field, e.g. `event`.
     pub name: String,
-    /// `<schema $id>#<anchor>`, e.g. `https://pipes.dev/stdlib/calendar/1#event`.
+    /// `<schema $id>#<anchor>`, e.g. `https://pipes.frogpond.tech/stdlib/calendar/1#event`.
     pub uri: String,
     pub time_fields: TimeTree,
     validator: jsonschema::Validator,

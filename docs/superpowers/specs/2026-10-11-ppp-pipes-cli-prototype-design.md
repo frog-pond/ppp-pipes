@@ -220,9 +220,9 @@ A run-wide stack of pipe names catches cycles. The error shows the chain: `all-c
 
 ### 6.1 Schemas
 
-**`common.schema.json`** (`$id: https://pipes.dev/stdlib/common/1`) holds the definitions from brainstorm §2 that `event` needs: `record`, `text`, `content`, `date`, `instant`, `local-date-time`, `when`, `tz`, `duration`, `rrule`, `url`, `email`, `phone`, `geo`, `address`, `place`, `person`, `org`, `agent`, `link`, `image`, `money`, `categories`, `keywords`, `created`, `modified`. The other definitions wait until a record type needs them.
+**`common.schema.json`** (`$id: https://pipes.frogpond.tech/stdlib/common/1`) holds the definitions from brainstorm §2 that `event` needs: `record`, `text`, `content`, `date`, `instant`, `local-date-time`, `when`, `tz`, `duration`, `rrule`, `url`, `email`, `phone`, `geo`, `address`, `place`, `person`, `org`, `agent`, `link`, `image`, `money`, `categories`, `keywords`, `created`, `modified`. The other definitions wait until a record type needs them.
 
-**`calendar.schema.json`** (`$id: https://pipes.dev/stdlib/calendar/1`, `version: 1.0.0`) defines one record type, `event`, with `$anchor: event`. It takes the fields from brainstorm §7 and adds:
+**`calendar.schema.json`** (`$id: https://pipes.frogpond.tech/stdlib/calendar/1`, `version: 1.0.0`) defines one record type, `event`, with `$anchor: event`. It takes the fields from brainstorm §7 and adds:
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -231,8 +231,6 @@ A run-wide stack of pipe names catches cycles. The error shows the chain: `all-c
 | `recurrence_id` | `when` | Which occurrence an override replaces |
 
 It drops the KDL schema's `color`. Records are closed (`unevaluatedProperties: false`) except for `extra`. A record with a local time must carry `tz` (`if`/`then`).
-
-The schema host name `pipes.dev` is still a placeholder, as in the brainstorm.
 
 ### 6.2 Three layers of normalization
 
@@ -260,7 +258,7 @@ The rule: if a second source would hit a problem, the fix goes in layer 1 or 2. 
 
 ## 7. Acceptance pipes
 
-Each lives in `pipes/` and declares `output: ["https://pipes.dev/stdlib/calendar/1#event"]`.
+Each lives in `pipes/` and declares `output: ["https://pipes.frogpond.tech/stdlib/calendar/1#event"]`.
 
 | Pipe | Source | What it proves |
 |---|---|---|

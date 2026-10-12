@@ -5,7 +5,7 @@
 
 # Pipe metadata that has no built-in attribute.
 export const pipe = {
-    output: ["https://pipes.dev/stdlib/calendar/1#event"]
+    output: ["https://pipes.frogpond.tech/stdlib/calendar/1#event"]
     refresh: 1hr
 }
 

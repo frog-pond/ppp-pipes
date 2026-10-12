@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://pipes.dev/stdlib/common/1",
+  "$id": "https://pipes.frogpond.tech/stdlib/common/1",
   "title": "Shared definitions for stdlib record types",
   "version": "1.0.0",
   "$defs": {
