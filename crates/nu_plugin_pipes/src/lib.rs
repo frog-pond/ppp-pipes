@@ -5,12 +5,13 @@
 //! signature and description, so the two can't drift apart.
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
 use nu_plugin::{EngineInterface, EvaluatedCall, Plugin, PluginCommand, SimplePluginCommand};
 use nu_protocol::engine::Command;
-use nu_protocol::{LabeledError, Record, Signature, SyntaxShape, Value};
+use nu_protocol::{LabeledError, Record, SignalAction, Signature, SyntaxShape, Value};
 use ppp_core::commands::{self, CommandError, Context};
 use ppp_core::host::{Host, HostConfig};
 use ppp_core::schema::Registry;
@@ -185,12 +186,20 @@ pub struct PipeGet(commands::PipeGet);
 impl SimplePluginCommand for PipeGet {
     borrow_from_core!();
     fn signature(&self) -> Signature {
-        self.0.signature().named(
-            "pipes-dir",
-            SyntaxShape::String,
-            "Directory that pipe names are looked up in (default: ./pipes)",
-            None,
-        )
+        self.0
+            .signature()
+            .named(
+                "pipes-dir",
+                SyntaxShape::String,
+                "Directory that pipe names are looked up in (default: ./pipes)",
+                None,
+            )
+            .named(
+                "timeout",
+                SyntaxShape::Duration,
+                "Stop the pipe after this long (default: 1min)",
+                None,
+            )
     }
     fn run(
         &self,
@@ -202,18 +211,57 @@ impl SimplePluginCommand for PipeGet {
         let name: String = call.req(0)?;
         let args: Option<Record> = call.opt(1)?;
         let pipes_dir: Option<String> = call.get_flag("pipes-dir")?;
+        let limit = match call.get_flag_value("timeout") {
+            Some(Value::Duration { val, .. }) => Duration::from_nanos(val.max(0) as u64),
+            _ => PIPE_TIMEOUT,
+        };
         let cwd = PathBuf::from(engine.get_current_dir()?);
         let host = Arc::new(Host::new(HostConfig {
             cache_dir: dirs::cache_dir().map(|dir| dir.join("ppp-pipes").join("http")),
             pipes_dir: cwd.join(pipes_dir.unwrap_or_else(|| "pipes".into())),
             ..HostConfig::default()
         }));
-        let result = host.with_timeout(PIPE_TIMEOUT, || {
+        // The plugin runs in its own process: Ctrl-C reaches it only as a
+        // signal from nu, which must stop the sandboxed engine too.
+        let pressed = Arc::new(AtomicBool::new(false));
+        let _handler = {
+            let (pressed, interrupt) = (pressed.clone(), host.interrupt());
+            engine.register_signal_handler(Box::new(move |action| {
+                if matches!(action, SignalAction::Interrupt) {
+                    pressed.store(true, Ordering::Relaxed);
+                    interrupt.store(true, Ordering::Relaxed);
+                }
+            }))?
+        };
+        let result = host.with_timeout(limit, || {
             commands::pipe_get::get(&host, &name, args.unwrap_or_default(), call.head)
         });
         for warning in host.take_warnings() {
             eprintln!("{warning}");
         }
-        result.map_err(labeled(call.head))
+        result.map_err(|err| {
+            let err = if pressed.load(Ordering::Relaxed) {
+                CommandError::new(format!("pipe get {name}"), "the pipe was interrupted")
+            } else if host.interrupted() {
+                let limit = humantime(limit);
+                CommandError::new(
+                    format!("pipe get {name}"),
+                    format!("the pipe ran longer than {limit} and was stopped"),
+                )
+            } else {
+                err
+            };
+            err.into_labeled_error(call.head)
+        })
+    }
+}
+
+/// A duration as nushell writes one, e.g. `1sec` or `1min`.
+fn humantime(limit: Duration) -> String {
+    let secs = limit.as_secs();
+    if secs > 0 && secs.is_multiple_of(60) {
+        format!("{}min", secs / 60)
+    } else {
+        format!("{secs}sec")
     }
 }

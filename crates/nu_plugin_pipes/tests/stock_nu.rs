@@ -94,3 +94,74 @@ fn pipe_get_runs_the_sandboxed_engine() {
     ));
     assert_eq!(out.trim(), "Chess Club");
 }
+
+/// Like `nu`, but returns the exit status and stderr instead of asserting.
+fn nu_failing(source: &str) -> String {
+    let nu = std::env::var("PPP_TEST_NU").unwrap_or_else(|_| "nu".into());
+    let registry = Path::new(env!("CARGO_TARGET_TMPDIR")).join("empty-plugin-registry-2.msgpackz");
+    let _ = std::fs::remove_file(&registry);
+    let out = Command::new(&nu)
+        .args(["-n", "--plugin-config"])
+        .arg(&registry)
+        .arg("--plugins")
+        .arg(env!("CARGO_BIN_EXE_nu_plugin_pipes"))
+        .args(["-c", source])
+        .current_dir(repo())
+        .output()
+        .unwrap();
+    assert!(!out.status.success(), "{source} succeeded");
+    String::from_utf8_lossy(&out.stderr).into_owned()
+}
+
+#[test]
+#[ignore]
+fn pipe_get_keeps_the_sandbox_in_stock_nu() {
+    // Stock nu has `ls`; the pipe still runs in the sandboxed engine.
+    let err = nu_failing("pipe get reads-files --pipes-dir fixtures/pipes");
+    assert!(err.contains("External calls are not supported"), "{err}");
+}
+
+#[test]
+#[ignore]
+fn pipe_get_says_when_its_time_limit_stopped_it() {
+    let err = nu_failing("pipe get slow --pipes-dir fixtures/pipes --timeout 1sec");
+    assert!(
+        err.contains("ran longer than 1sec and was stopped"),
+        "{err}"
+    );
+}
+
+#[test]
+#[ignore]
+fn ctrl_c_stops_pipe_get() {
+    let nu = std::env::var("PPP_TEST_NU").unwrap_or_else(|_| "nu".into());
+    let registry = Path::new(env!("CARGO_TARGET_TMPDIR")).join("empty-plugin-registry-3.msgpackz");
+    let _ = std::fs::remove_file(&registry);
+    let started = std::time::Instant::now();
+    let child = Command::new(&nu)
+        .args(["-n", "--plugin-config"])
+        .arg(&registry)
+        .arg("--plugins")
+        .arg(env!("CARGO_BIN_EXE_nu_plugin_pipes"))
+        .args(["-c", "pipe get slow --pipes-dir fixtures/pipes"])
+        .current_dir(repo())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    Command::new("kill")
+        .args(["-INT", &child.id().to_string()])
+        .status()
+        .unwrap();
+    let out = child.wait_with_output().unwrap();
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(15),
+        "took {:?}",
+        started.elapsed()
+    );
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("was interrupted"),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
