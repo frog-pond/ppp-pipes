@@ -178,6 +178,33 @@ fn carleton_week_adds_pictures_from_its_page() {
 }
 
 #[test]
+fn carleton_week_keeps_the_query_its_page_already_has() {
+    let feed = serve(vec![reply(
+        "200 OK",
+        &[],
+        &read("fixtures/ics/carleton.ics"),
+    )]);
+    let page = serve(vec![reply(
+        "200 OK",
+        &[("Content-Type", "text/html")],
+        &read("fixtures/html/carleton-calendar.html"),
+    )]);
+    let mut args = window(&feed.url);
+    args.push(
+        "page",
+        Value::test_string(format!("{}?view=list&start_date=1999-01-01", page.url)),
+    );
+    let records = run("carleton-week", args).unwrap();
+    assert!(records.iter().any(|e| e.get("images").is_some()));
+    let request = &page.requests.lock().unwrap()[0];
+    let target = request.lines().next().unwrap();
+    assert_eq!(
+        target,
+        "get /feed?view=list&start_date=2026-08-31&end_date=2031-08-30 http/1.1"
+    );
+}
+
+#[test]
 fn carleton_week_resolves_relative_pictures_and_skips_inline_ones() {
     let feed = serve(vec![reply(
         "200 OK",
@@ -276,4 +303,28 @@ fn all_campus_keeps_going_when_a_source_fails() {
     );
     // Warnings are read in a terminal or a log; colour codes would be noise.
     assert!(warnings.iter().all(|w| !w.contains('\x1b')), "{warnings:?}");
+}
+
+#[test]
+fn carleton_week_with_an_unreadable_page_url_still_has_its_events() {
+    let feed = serve(vec![reply(
+        "200 OK",
+        &[],
+        &read("fixtures/ics/carleton.ics"),
+    )]);
+    let host = Arc::new(Host::new(HostConfig {
+        pipes_dir: repo("pipes"),
+        ..HostConfig::default()
+    }));
+    let mut pipe = Pipe::load_with(&repo("pipes/carleton-week.nu"), host.clone()).unwrap();
+    let mut args = window(&feed.url);
+    args.push("page", Value::test_string("not a url"));
+    assert_eq!(pipe.run(&args).unwrap().len(), 6);
+    let warnings = host.take_warnings();
+    assert!(
+        warnings
+            .iter()
+            .any(|w| w.contains("Carleton event pictures are missing")),
+        "{warnings:?}"
+    );
 }
