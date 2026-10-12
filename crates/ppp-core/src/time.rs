@@ -14,6 +14,14 @@ pub fn timestamp(dt: &DateTime<FixedOffset>) -> Result<Timestamp, jiff::Error> {
     Timestamp::new(dt.timestamp(), dt.timestamp_subsec_nanos() as i32)
 }
 
+/// A fixed zone at the datetime's own offset, for writing dates that came
+/// with no time zone (ICS `VALUE=DATE`).
+pub fn own_zone(dt: &DateTime<FixedOffset>) -> TimeZone {
+    let offset = jiff::tz::Offset::from_seconds(dt.offset().local_minus_utc())
+        .expect("chrono offsets are under a day, inside jiff's range");
+    TimeZone::fixed(offset)
+}
+
 /// `2026-10-15T00:30:00Z`
 pub fn format_instant(ts: Timestamp) -> String {
     ts.strftime("%Y-%m-%dT%H:%M:%SZ").to_string()

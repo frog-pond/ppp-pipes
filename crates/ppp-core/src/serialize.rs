@@ -87,7 +87,8 @@ impl Context {
                 let ts = time::timestamp(val).map_err(|_| SerializeError::OutOfRange {
                     pointer: pointer.clone(),
                 })?;
-                Json::String(self.format_time(ts, tree.and_then(|t| t.kind), pointer)?)
+                let own_zone = time::own_zone(val);
+                Json::String(self.format_time(ts, &own_zone, tree.and_then(|t| t.kind), pointer)?)
             }
             Value::Record { val, .. } => {
                 let mut out = Map::new();
@@ -125,6 +126,7 @@ impl Context {
     fn format_time(
         &self,
         ts: jiff::Timestamp,
+        own_zone: &TimeZone,
         kind: Option<TimeKind>,
         pointer: &str,
     ) -> Result<String, SerializeError> {
@@ -136,7 +138,12 @@ impl Context {
         };
         match kind {
             TimeKind::Instant | TimeKind::When => Ok(time::format_instant(ts)),
-            TimeKind::Date => Ok(time::format_date(ts, &self.zone(pointer, "date")?)),
+            // A date with no `tz` is read in its own offset: an all-day date
+            // has no zone (RFC 5545), so this writes it as it was given.
+            TimeKind::Date => match self.tz {
+                Some(_) => Ok(time::format_date(ts, &self.zone(pointer, "date")?)),
+                None => Ok(time::format_date(ts, own_zone)),
+            },
             TimeKind::LocalDateTime => Ok(time::format_local(
                 ts,
                 &self.zone(pointer, "local date-time")?,

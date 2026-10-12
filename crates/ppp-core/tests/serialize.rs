@@ -108,19 +108,21 @@ fn datetimes_outside_time_fields_are_instants() {
 }
 
 #[test]
-fn all_day_without_tz_is_an_error() {
-    let err = to_json(&event(record! {
-        "start" => date("2026-10-17T00:00:00-05:00"),
+fn all_day_without_tz_uses_the_datetimes_own_offset() {
+    // An ICS `VALUE=DATE` has no zone. Midnight at +02:00 is still the 16th
+    // in UTC, so this fails if the date is read in any zone but its own.
+    let registry = Registry::stdlib().unwrap();
+    let json = to_json(&event(record! {
+        "start" => date("2026-10-17T00:00:00+02:00"),
+        "end" => date("2026-10-19T00:00:00+02:00"),
         "all_day" => Value::test_bool(true),
     }))
-    .unwrap_err();
+    .unwrap();
     assert_eq!(
-        err,
-        SerializeError::MissingTimeZone {
-            pointer: "/start".into(),
-            form: "date"
-        }
+        (json["start"].as_str(), json["end"].as_str()),
+        (Some("2026-10-17"), Some("2026-10-19"))
     );
+    assert_eq!(registry.validate(0, &json), vec![]);
 }
 
 #[test]

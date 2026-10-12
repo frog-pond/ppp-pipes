@@ -175,6 +175,8 @@ It handles CRLF and LF line endings, folded lines, quoted parameters, TEXT escap
 
 **Zone for each time**, in order: the property's `TZID`; then the calendar's `X-WR-TIMEZONE` or `TIMEZONE-ID`; then `--tz`. A `Z` time is UTC. A floating time with none of these is an **error** that says to pass `--tz`. Unlike `ics.nu`, it never falls back to the machine's local zone, because embedded hosts run wherever the server runs.
 
+All-day dates (`VALUE=DATE`) take the same zone when there is one. With no zone anywhere they are not an error: RFC 5545 dates have no zone, so `from ics` stores them as midnight UTC and gives the record no `tz`.
+
 Bad optional properties, such as Northfield's `DTSTAMP;TZID=…`, are kept in `props` and do not fail the parse.
 
 ### 5.3 Time formatting
@@ -184,11 +186,13 @@ Inside a pipe, times are nushell `datetime` values, so `where start < (date now)
 | Schema definition | Output |
 |---|---|
 | `instant` | RFC 3339 in UTC: `2026-10-14T00:30:00Z` |
-| `date` | `2026-10-14`, taken in the record's `tz` |
+| `date` | `2026-10-14`, taken in the record's `tz`; with no `tz`, in the datetime's own offset |
 | `local-date-time` | `2026-10-14T19:30:00`, wall time in the record's `tz` |
 | `when` (any of the three) | `date` if the record has `all_day: true`; otherwise `local-date-time` if it has `tz`; otherwise `instant` |
 
 **Time-field map.** When the registry loads, it walks each record type's `$def` and lists the paths of its time fields, such as `start`, `end`, `exdates[]` and `reminders[].at`. The walker understands only the keywords our schemas use: `$ref`, `allOf`, `properties`, `items`, `if`/`then`/`else`. Any other keyword on a path to a time definition is an error at load time, and a test loads every stdlib type.
+
+**Dates without `tz`.** Reading a date in its own offset writes it as the source gave it. The one risk: a pipe that moves such a datetime to another zone (`date to-timezone America/Chicago`) turns midnight UTC into 19:00 the day before, and the date shifts. `into event` documents this.
 
 **DST.** A wall time that falls in a spring-forward gap, or twice in a fall-back hour, resolves with jiff's `compatible` rule, which matches RFC 5545.
 
