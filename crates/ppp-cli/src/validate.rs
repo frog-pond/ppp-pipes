@@ -14,7 +14,7 @@ use serde_json::Value as Json;
 const SHOWN: usize = 20;
 
 pub fn run(file: &Path) -> ExitCode {
-    let (records, unit) = match read_records(file) {
+    let (records, numbering) = match read_records(file) {
         Ok(found) => found,
         Err(message) => {
             eprintln!("ppp: {}: {message}", file.display());
@@ -44,7 +44,7 @@ pub fn run(file: &Path) -> ExitCode {
         return ExitCode::SUCCESS;
     }
     for e in errors.iter().take(SHOWN) {
-        eprintln!("{}: {}", file.display(), describe(e, unit));
+        eprintln!("{}: {}", file.display(), describe(e, &numbering));
     }
     if errors.len() > SHOWN {
         eprintln!("{}: …and {} more", file.display(), errors.len() - SHOWN);
@@ -59,36 +59,37 @@ pub fn run(file: &Path) -> ExitCode {
 }
 
 /// How records are numbered in messages.
-#[derive(Clone, Copy)]
-enum Unit {
+enum Numbering {
     /// 0-based position in a JSON array.
     Record,
-    /// 1-based line in a JSONL file.
-    Line,
+    /// The 1-based line each record came from in a JSONL file.
+    Lines(Vec<usize>),
 }
 
-fn read_records(file: &Path) -> Result<(Vec<Json>, Unit), String> {
+fn read_records(file: &Path) -> Result<(Vec<Json>, Numbering), String> {
     let text = fs::read_to_string(file).map_err(|e| e.to_string())?;
     if file.extension().is_some_and(|ext| ext == "jsonl") {
         let mut records = Vec::new();
+        let mut lines = Vec::new();
         for (i, line) in text.lines().enumerate() {
             if line.trim().is_empty() {
                 continue;
             }
             records.push(serde_json::from_str(line).map_err(|e| format!("line {}: {e}", i + 1))?);
+            lines.push(i + 1);
         }
-        return Ok((records, Unit::Line));
+        return Ok((records, Numbering::Lines(lines)));
     }
     match serde_json::from_str(&text).map_err(|e| e.to_string())? {
-        Json::Array(records) => Ok((records, Unit::Record)),
+        Json::Array(records) => Ok((records, Numbering::Record)),
         _ => Err("expected a JSON array of records".to_string()),
     }
 }
 
-fn describe(e: &RecordError, unit: Unit) -> String {
-    let place = match unit {
-        Unit::Record => format!("record {}", e.index),
-        Unit::Line => format!("line {}", e.index + 1),
+fn describe(e: &RecordError, numbering: &Numbering) -> String {
+    let place = match numbering {
+        Numbering::Record => format!("record {}", e.index),
+        Numbering::Lines(lines) => format!("line {}", lines[e.index]),
     };
     let pointer = if e.pointer.is_empty() {
         String::new()

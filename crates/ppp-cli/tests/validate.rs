@@ -65,7 +65,7 @@ fn jsonl_reports_lines() {
     let out = ppp_validate(&file);
     assert_eq!(out.status.code(), Some(1));
     let stderr = text(&out.stderr);
-    assert!(stderr.contains("line 2 /summary:"), "{stderr}");
+    assert!(stderr.contains("line 3 /summary:"), "{stderr}");
 }
 
 #[test]
