@@ -4025,6 +4025,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "chrono-tz",
+ "flate2",
  "jiff",
  "jsonschema",
  "nu-cmd-lang",

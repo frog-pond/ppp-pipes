@@ -192,3 +192,25 @@ fn freshness_and_max_age() {
     assert_eq!(max_age("no-store"), None);
     assert_eq!(max_age("private"), None);
 }
+
+#[test]
+fn the_size_cap_counts_decompressed_bytes() {
+    use std::io::Write;
+    let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::best());
+    gz.write_all(&vec![b'x'; 100_000]).unwrap();
+    let body = gz.finish().unwrap();
+    assert!(body.len() < 1_000);
+    let server = serve(vec![support::Reply {
+        status: "200 OK",
+        headers: vec![("Content-Encoding", "gzip".to_string())],
+        body,
+    }]);
+    let host = Host::new(HostConfig {
+        max_response_bytes: 10_000,
+        ..HostConfig::default()
+    });
+    assert!(matches!(
+        fetch(&host, &server.url, None),
+        Err(FetchError::TooLarge { limit: 10_000, .. })
+    ));
+}

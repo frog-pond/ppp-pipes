@@ -1,5 +1,7 @@
 //! Fetching over HTTP for `http get`, through the cache (spec §4.1, §8.1).
 
+use std::io::Read;
+
 use jiff::{SignedDuration, Timestamp};
 
 use crate::cache::{Cache, Meta, max_age};
@@ -86,12 +88,26 @@ pub fn fetch(
             max_age: header("cache-control").as_deref().and_then(max_age),
         };
         let status = response.status().as_u16();
-        let body = response
+        // The cap counts decoded bytes: ureq's own limit counts the bytes
+        // on the wire, so a small gzip body could expand without bound.
+        let limit = host.config.max_response_bytes;
+        let mut body = Vec::new();
+        response
             .body_mut()
             .with_config()
-            .limit(host.config.max_response_bytes)
-            .read_to_vec()
-            .map_err(network)?;
+            .reader()
+            .take(limit.saturating_add(1))
+            .read_to_end(&mut body)
+            .map_err(|err| FetchError::Network {
+                url: url.to_string(),
+                message: err.to_string(),
+            })?;
+        if body.len() as u64 > limit {
+            return Err(FetchError::TooLarge {
+                url: url.to_string(),
+                limit,
+            });
+        }
         Ok((status, meta, body))
     });
 
