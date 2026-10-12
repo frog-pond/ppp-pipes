@@ -8,6 +8,10 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use nu_protocol::{Value, record};
+use ppp_core::pipe::{Pipe, check_records};
+use ppp_core::schema::Registry;
+
 fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
@@ -93,7 +97,13 @@ fn pipe_files_run_unchanged() {
     let out = nu(&format!(
         "use {repo}/fixtures/pipes/two-events.nu; two-events --count 1 --loud | validate | to pipes-json"
     ));
-    assert_eq!(json(&out)[0]["summary"], "CHESS CLUB");
+    // The same records `ppp run two-events --count 1 --loud` writes.
+    let mut pipe = Pipe::load(&Path::new(&repo).join("fixtures/pipes/two-events.nu")).unwrap();
+    let records = pipe
+        .run(&record! { "count" => Value::test_int(1), "loud" => Value::test_bool(true) })
+        .unwrap();
+    let expected = check_records(&Registry::stdlib().unwrap(), pipe.info(), &records).unwrap();
+    assert_eq!(json(&out), serde_json::Value::Array(expected));
 }
 
 #[test]
