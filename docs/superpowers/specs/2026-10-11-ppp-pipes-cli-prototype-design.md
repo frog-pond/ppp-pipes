@@ -94,7 +94,8 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
   It runs `main` with typed arguments and returns the list of records.
 - **`schema`** holds a registry of the embedded schemas, keyed by `$id`. For each record type (each `$def` with an `$anchor`) it compiles a `jsonschema` validator (2020-12, format assertion on) and a **time-field map** (§5.3). An unknown `$id` is an error. Nothing is fetched.
 - **`serialize`** turns a nushell record into JSON, formatting time fields according to the map.
-- **`cache`** stores HTTP responses on disk, keyed by URL. It obeys the pipe's `refresh` and the response's `Cache-Control` and `ETag`. The CLI puts it in the user cache directory (`directories` crate). Embedders pass their own path.
+- **`cache`** stores HTTP responses on disk, as a body file and a JSON metadata file named by the SHA-256 of the URL. A response is fresh for the pipe's `refresh` if it has one, else for the response's `Cache-Control: max-age`, else not at all; a stale one is revalidated with `ETag`/`Last-Modified`. The CLI puts it in `<user cache dir>/ppp-pipes/http` (`dirs` crate). Embedders pass their own path, or none.
+- **`host`** holds what every engine of one run shares: the cache directory, the pipes directory `pipe get` reads, the limits, the flag a timeout sets, the stack of running pipes, and warnings for the caller to show.
 - **`time`** holds jiff helpers and the only chrono ↔ jiff conversions.
 - **`recur`** is the only module that touches the `rrule` crate.
 
@@ -105,7 +106,7 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
 | `from ics [--tz]` | string → table | §5.2 |
 | `expand rrule --from <dt> --until <dt>` | table → table | §5.4 |
 | `html to-text` | string → string | Strips tags and decodes entities (`&amp;`, `&#8211;`); crate chosen in the plan |
-| `http get` | → any | Replaces the built-in: cache, size cap, run log |
+| `http get <url> [--raw]` | → any | Replaces the built-in: http(s) only, through the cache, with the size cap. JSON (by `Content-Type`) is parsed unless `--raw`; other bodies are text when UTF-8, else binary |
 | `pipe get <name> [args]` | → table | §5.5 |
 | `validate` | table → table | Returns its input unchanged, or fails with index and pointer |
 | `to pipes-json` | table → string | Canonical JSON, with time fields formatted by the schema |
@@ -122,14 +123,14 @@ Each command is a plain function: typed arguments and a `Value` in, a `Value` or
 ### 4.4 `ppp-cli`
 
 ```
-ppp run <pipe> [--pipes-dir DIR] [--timeout SECS] [pipe flags…]
+ppp run [--pipes-dir DIR] [--cache-dir DIR | --no-cache] [--timeout SECS] <pipe> [pipe flags…]
 ppp info <pipe> [--pipes-dir DIR]
 ppp validate <file.json | file.jsonl>
 ```
 
 - `<pipe>` is a name, looked up as `<pipes-dir>/<name>.nu` (default `./pipes`), or a path.
 - `run` passes any remaining arguments to `main` exactly as `nu <pipe>.nu <args>` would: each is quoted as needed (`nu_parser::escape_for_script_arg`) and nushell's parser checks them against `main`'s signature, so every flag type works and errors are nushell's own (unknown flag, type mismatch, missing value). Embedders don't go through this; they pass typed values. `ppp run`'s own options (`--pipes-dir`) go before the pipe name, since everything after it belongs to the pipe.
-- `info` prints the `PipeInfo`. This is the metadata a UI will later turn into a form.
+- `info` prints the `PipeInfo` as JSON: name, title, description, category, search terms, examples, flags (name, type, description, default), output types and refresh (ISO 8601). It doesn't run the pipe. This is the metadata a UI will later turn into a form.
 - `validate` checks a JSON array or JSONL file against the stdlib.
 
 ### 4.5 `nu_plugin_pipes`
@@ -220,7 +221,7 @@ If a pipe skips `expand rrule`, the master keeps its `rrule`, and `into event` g
 
 ### 5.5 `pipe get`
 
-`pipe get <name> [args]` runs another pipe through steps 1–4 of §5.1 and returns its records as nushell values, with datetimes intact. `args` is a record of the other pipe's parameters, e.g. `{days: 3}`.
+`pipe get <name> [args]` runs another pipe through steps 1–4 of §5.1, in its own engine sharing the run's host (cache, timeout, warnings), and returns its records as nushell values, with datetimes intact. `args` is a record of the other pipe's flags, e.g. `{within: 3day}`. If the other pipe's records fail the check, `pipe get` fails and shows the first five failures.
 
 A run-wide stack of pipe names catches cycles. The error shows the chain: `all-campus → campus-week → all-campus`.
 
