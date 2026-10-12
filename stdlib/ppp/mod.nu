@@ -176,6 +176,8 @@ def tribe-row []: record -> record {
     }
     let website = $event.website? | default "" | html to-text | str trim | str replace -r '(%20)+$' ''
     let image = $event.image? | if ($in | describe | str starts-with record) { $in }
+    # Tribe's virtual_url sometimes leaves out the scheme.
+    let virtual_url = $event.virtual_url? | default "" | str trim | if $in != "" and $in !~ '^[A-Za-z][A-Za-z0-9+.-]*:' { $"https://($in)" } else { $in }
     {
         uid: ($event.global_id? | default ($event.id | into string))
         summary: $event.title
@@ -193,7 +195,7 @@ def tribe-row []: record -> record {
         categories: ($event.categories? | default [] | get name? | default [] | each { html to-text })
         keywords: ($event.tags? | default [] | get name? | default [] | each { html to-text })
         images: (if $image != null { [({url: $image.url, alt: ($event.title | html to-text), width: $image.width?, height: $image.height?} | drop-empty)] } else { [] })
-        online: (if ($event.virtual_url? | default "") =~ '^https?://' { {url: $event.virtual_url} })
+        online: (if $virtual_url =~ '^https?://' { {url: $virtual_url} })
         created: (do $utc $event.date_utc)
         last_modified: (do $utc $event.modified_utc)
         featured: $event.featured?
