@@ -73,9 +73,12 @@ pub fn expand_values(
     let instant = |value: &Value| {
         let date = value.as_date().map_err(|_| {
             CommandError::new("expand rrule", "--from and --until must be datetimes")
+                .at(value.span())
         })?;
-        time::timestamp(&date)
-            .map_err(|_| CommandError::new("date out of range", "outside the years -9999 to 9999"))
+        time::timestamp(&date).map_err(|_| {
+            CommandError::new("date out of range", "outside the years -9999 to 9999")
+                .at(value.span())
+        })
     };
     let rows = match input {
         Value::List { vals, .. } => vals.to_vec(),
@@ -84,7 +87,8 @@ pub fn expand_values(
             return Err(CommandError::new(
                 "expand rrule",
                 format!("expected a table, got {}", other.get_type()),
-            ));
+            )
+            .at(other.span()));
         }
     };
     Ok(Value::list(

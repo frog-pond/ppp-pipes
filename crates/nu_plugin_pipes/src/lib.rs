@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use nu_plugin::{EngineInterface, EvaluatedCall, Plugin, PluginCommand, SimplePluginCommand};
 use nu_protocol::engine::Command;
-use nu_protocol::{LabeledError, Record, SignalAction, Signature, SyntaxShape, Value};
+use nu_protocol::{LabeledError, Record, SignalAction, Signature, Spanned, SyntaxShape, Value};
 use ppp_core::commands::{self, CommandError, Context};
 use ppp_core::host::{Host, HostConfig};
 use ppp_core::schema::Registry;
@@ -256,7 +256,7 @@ impl SimplePluginCommand for PipeGet {
         call: &EvaluatedCall,
         _: &Value,
     ) -> Result<Value, LabeledError> {
-        let name: String = call.req(0)?;
+        let Spanned { item: name, span } = call.req::<Spanned<String>>(0)?;
         let args: Option<Record> = call.opt(1)?;
         let pipes_dir: Option<String> = call.get_flag("pipes-dir")?;
         let limit = match call.get_flag_value("timeout") {
@@ -299,7 +299,8 @@ impl SimplePluginCommand for PipeGet {
             } else {
                 err
             };
-            err.into_labeled_error(call.head)
+            // Point at the pipe's name, as the engine's `pipe get` does.
+            err.into_labeled_error(span)
         })
     }
 }

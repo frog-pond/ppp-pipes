@@ -87,3 +87,15 @@ pub fn serve_silence() -> String {
     });
     url
 }
+
+/// Whether a rendered nushell error puts its label's `^` marks under
+/// `token` in the source line above them.
+pub fn labels(rendered: &str, token: &str) -> bool {
+    let lines: Vec<&str> = rendered.lines().collect();
+    lines
+        .windows(2)
+        .any(|pair| match (pair[0].find(token), pair[1].find('^')) {
+            (Some(at), Some(mark)) => pair[1].trim_start().starts_with(':') && mark == at,
+            _ => false,
+        })
+}
