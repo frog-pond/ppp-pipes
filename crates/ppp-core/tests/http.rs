@@ -295,3 +295,9 @@ fn nothing_is_fetched_after_the_run_timed_out() {
     ));
     assert!(server.requests.lock().unwrap().is_empty());
 }
+
+#[test]
+fn the_default_cache_is_under_the_user_cache_dir() {
+    let dir = ppp_core::cache::default_dir().unwrap();
+    assert!(dir.ends_with("ppp-pipes/http"), "{}", dir.display());
+}

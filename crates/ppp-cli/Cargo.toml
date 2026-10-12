@@ -9,6 +9,5 @@ path = "src/main.rs"
 
 [dependencies]
 clap.workspace = true
-dirs.workspace = true
 ppp-core = { path = "../ppp-core" }
 serde_json.workspace = true

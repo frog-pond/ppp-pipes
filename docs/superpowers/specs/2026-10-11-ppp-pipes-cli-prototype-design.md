@@ -94,7 +94,7 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
   It runs `main` with typed arguments and returns the list of records.
 - **`schema`** holds a registry of the embedded schemas, keyed by `$id`. For each record type (each `$def` with an `$anchor`) it compiles a `jsonschema` validator (2020-12, format assertion on) and a **time-field map** (§5.3). An unknown `$id` is an error. Nothing is fetched.
 - **`serialize`** turns a nushell record into JSON, formatting time fields according to the map.
-- **`cache`** stores HTTP responses on disk, as a body file and a JSON metadata file named by the SHA-256 of the URL. A response is fresh for the pipe's `refresh` if it has one, else for the response's `Cache-Control: max-age`, else not at all; a stale one is revalidated with `ETag`/`Last-Modified`. The CLI puts it in `<user cache dir>/ppp-pipes/http` (`dirs` crate). Embedders pass their own path, or none.
+- **`cache`** stores HTTP responses on disk, as a body file and a JSON metadata file named by the SHA-256 of the URL. A response is fresh for the pipe's `refresh` if it has one, else for the response's `Cache-Control: max-age`, else not at all; a stale one is revalidated with `ETag`/`Last-Modified`. The CLI and the plugin put it in `<user cache dir>/ppp-pipes/http` (`dirs` crate, through `cache::default_dir`). Embedders pass their own path, or none.
 - **`host`** holds what every engine of one run shares: the cache directory, the pipes directory `pipe get` reads, the limits, the flag a timeout sets, the stack of running pipes, and warnings for the caller to show.
 - **`time`** holds jiff helpers and the only chrono ↔ jiff conversions.
 - **`recur`** is the only module that touches the `rrule` crate.

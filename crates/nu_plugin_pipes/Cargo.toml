@@ -8,7 +8,6 @@ name = "nu_plugin_pipes"
 path = "src/main.rs"
 
 [dependencies]
-dirs.workspace = true
 nu-plugin.workspace = true
 nu-protocol = { workspace = true, features = ["plugin"] }
 ppp-core = { path = "../ppp-core" }

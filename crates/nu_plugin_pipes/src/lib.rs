@@ -265,7 +265,7 @@ impl SimplePluginCommand for PipeGet {
         };
         let cwd = PathBuf::from(engine.get_current_dir()?);
         let host = Arc::new(Host::new(HostConfig {
-            cache_dir: dirs::cache_dir().map(|dir| dir.join("ppp-pipes").join("http")),
+            cache_dir: ppp_core::cache::default_dir(),
             pipes_dir: cwd.join(pipes_dir.unwrap_or_else(|| "pipes".into())),
             ..HostConfig::default()
         }));

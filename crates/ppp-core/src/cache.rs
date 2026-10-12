@@ -13,6 +13,12 @@ use jiff::{SignedDuration, Timestamp};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+/// Where the CLI and the plugin keep the cache: `ppp-pipes/http` in the
+/// user's cache directory, when the platform has one.
+pub fn default_dir() -> Option<PathBuf> {
+    dirs::cache_dir().map(|dir| dir.join("ppp-pipes").join("http"))
+}
+
 /// What the cache knows about one response, besides its body.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Meta {
