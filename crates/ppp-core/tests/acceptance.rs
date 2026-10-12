@@ -170,9 +170,11 @@ fn carleton_week_adds_pictures_from_its_page() {
         );
         assert_eq!(event["images"][0]["alt"], event["summary"]);
     }
+    // The window runs from 2026-09-01T00:00Z for five 365-day years,
+    // given as Chicago dates.
     let request = &page.requests.lock().unwrap()[0];
     assert!(
-        request.contains("start_date=2026-08-31") && request.contains("end_date="),
+        request.contains("start_date=2026-08-31&end_date=2031-08-30"),
         "{request}"
     );
 }
