@@ -1,0 +1,39 @@
+[
+  {
+    "type": "event",
+    "id": "c1f6a3e2-5b7d-4e0a-9f3c-1d2e3f4a5b6c",
+    "summary": "Quarterly planning",
+    "start": "2026-11-02T10:00:00",
+    "end": "2026-11-02T15:00:00",
+    "tz": "Europe/London",
+    "status": "tentative",
+    "location": { "name": "London office, 4th floor" },
+    "attendance": "hybrid",
+    "online": { "url": "https://meet.example.com/q4-planning" },
+    "organizers": [{
+      "person": {
+        "name": { "display": "Priya Shah" },
+        "emails": [{ "address": "priya@example.com" }],
+        "phones": [{ "number": "+44 20 7946 0000" }]
+      }
+    }],
+    "attendees": [
+      { "person": { "name": { "display": "Priya Shah" }, "emails": [{ "address": "priya@example.com" }] }, "role": "chair", "rsvp": "accepted" },
+      { "person": { "name": { "display": "Sam Okafor" }, "emails": [{ "address": "sam@example.com" }] }, "role": "required", "rsvp": "needs-action" },
+      { "person": { "name": { "display": "Lee Wong" } }, "role": "optional", "rsvp": "declined" }
+    ],
+    "reminders": [{ "before": "P1D", "method": "email" }, { "before": "PT15M" }]
+  },
+  {
+    "type": "event",
+    "id": "standup-2026@product.example.com",
+    "summary": "Daily standup",
+    "start": "2026-10-12T09:30:00-04:00",
+    "duration": "PT15M",
+    "tz": "America/New_York",
+    "attendance": "online",
+    "online": { "url": "https://meet.example.com/standup", "platform": "meet" },
+    "rrule": "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR",
+    "exdates": ["2026-11-26T09:30:00-05:00", "2026-11-27T09:30:00-05:00"]
+  }
+]

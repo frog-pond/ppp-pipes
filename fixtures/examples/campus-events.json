@@ -1,0 +1,78 @@
+[
+  {
+    "type": "event",
+    "id": "20261014-orchestra@calendar.example.edu",
+    "source": "https://www.stolaf.edu/apps/calendar/ical.cfm",
+    "featured": true,
+    "summary": "Fall Orchestra Concert",
+    "start": "2026-10-14T19:30:00",
+    "end": "2026-10-14T21:00:00",
+    "tz": "America/Chicago",
+    "status": "confirmed",
+    "location": {
+      "place": {
+        "id": "boe-chapel",
+        "name": "Boe Memorial Chapel",
+        "address": { "lines": ["1520 St. Olaf Avenue"], "locality": "Northfield", "region": "MN", "postcode": "55057", "country": "US" },
+        "geo": { "lat": 44.4614, "lon": -93.1822 }
+      }
+    },
+    "attendance": "hybrid",
+    "online": { "url": "https://www.example.edu/live/orchestra", "platform": "youtube" },
+    "excerpt": "The orchestra opens its season with Dvořák's Eighth.",
+    "description": "The orchestra opens its season with Dvořák's Symphony No. 8.\nFree and open to the public.",
+    "url": "https://www.example.edu/events/fall-orchestra",
+    "links": [{ "url": "https://tickets.example.edu/orchestra", "rel": "tickets", "title": "Reserve seats" }],
+    "images": [{ "url": "https://www.example.edu/img/orchestra.jpg", "alt": "The orchestra on stage in Boe Chapel" }],
+    "cost": { "free": true, "note": "Tickets required" },
+    "categories": ["Music", "Concert"],
+    "keywords": ["Orchestra", "Dvořák"],
+    "organizers": [{
+      "org": {
+        "name": "Music Department",
+        "emails": [{ "address": "music@example.edu" }],
+        "phones": [{ "number": "507-786-3180" }],
+        "url": "https://www.example.edu/music/"
+      }
+    }],
+    "created": "2026-08-06T18:11:07Z",
+    "modified": "2026-09-02T15:53:15Z",
+    "reminders": [{ "before": "PT1H", "method": "display" }]
+  },
+  {
+    "type": "event",
+    "id": "20261018-family-weekend@calendar.example.edu",
+    "summary": "Family Weekend",
+    "start": "2026-10-17",
+    "end": "2026-10-19",
+    "all_day": true,
+    "tz": "America/Chicago",
+    "status": "confirmed",
+    "location": { "name": "Campus-wide" },
+    "categories": ["Community"]
+  },
+  {
+    "type": "event",
+    "id": "weekly-chess@calendar.example.edu",
+    "summary": "Chess Club",
+    "cost": { "min": 5, "max": 10, "currency": "USD", "note": "Dues per semester; first visit free" },
+    "start": "2026-09-08T18:00:00",
+    "duration": "PT2H",
+    "tz": "America/Chicago",
+    "location": { "name": "Buntrock Commons, Room 143" },
+    "categories": ["Clubs"],
+    "rrule": "FREQ=WEEKLY;BYDAY=TU;UNTIL=20261215T235959Z",
+    "exdates": ["2026-11-24T18:00:00"]
+  },
+  {
+    "type": "event",
+    "id": "20261022-lecture@calendar.example.edu",
+    "summary": "Guest Lecture: Pipelines Everywhere",
+    "start": "2026-10-22T16:00:00Z",
+    "end": "2026-10-22T17:15:00Z",
+    "status": "cancelled",
+    "location": { "name": "Regents Hall 150" },
+    "description": "Cancelled: the speaker's flight was grounded. A new date will be announced.",
+    "organizers": [{ "org": { "name": "Computer Science" } }]
+  }
+]

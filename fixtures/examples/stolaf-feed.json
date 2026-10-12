@@ -1,0 +1,57 @@
+[
+  {
+    "type": "event",
+    "id": "wp.stolaf.edu/calendar?id=117282",
+    "source": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events",
+    "summary": "Norwegian-American Historical Association Biennial Meeting",
+    "start": "2026-10-10T09:00:00",
+    "end": "2026-10-10T17:00:00",
+    "tz": "America/Chicago",
+    "location": { "place": { "id": "buntrock-ballrooms", "name": "Ballrooms in Buntrock Commons" } },
+    "excerpt": "A day of Norwegian-American learning and networking at St. Olaf College",
+    "url": "https://wp.stolaf.edu/calendar/event/norwegian-american-historical-association-biennial-meeting/",
+    "links": [{ "url": "https://norwegianamericanhistory.org/events/", "rel": "info" }],
+    "cost": { "min": 90, "currency": "USD" },
+    "categories": ["Speakers/Lectures"],
+    "organizers": [{
+      "org": {
+        "name": "Norwegian-American Historical Association",
+        "emails": [{ "address": "naha@stolaf.edu" }],
+        "phones": [{ "number": "507-786-3221" }],
+        "url": "https://naha.stolaf.edu"
+      }
+    }],
+    "created": "2026-09-29T19:07:02Z",
+    "modified": "2026-09-29T19:43:10Z"
+  },
+  {
+    "type": "event",
+    "id": "wp.stolaf.edu/calendar?id=115631",
+    "source": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events",
+    "summary": "St. Olaf Orchestra at Troy High School (Troy, MI)",
+    "start": "2026-10-12T19:00:00",
+    "end": "2026-10-12T21:00:00",
+    "tz": "America/Chicago",
+    "url": "https://wp.stolaf.edu/calendar/event/st-olaf-orchestra-at-troy-high-school-troy-mi/",
+    "links": [{ "url": "https://www.eventbrite.com/e/st-olaf-orchestra-at-troy-high-school-troy-mi-tickets-1994343429885?aff=oddtdtcreator&keep_tld=true", "rel": "tickets" }],
+    "categories": ["Music"],
+    "keywords": ["Orchestra", "St. Olaf Orchestra"],
+    "organizers": [{ "org": { "name": "Music Organizations" } }],
+    "created": "2026-08-06T18:26:30Z",
+    "modified": "2026-09-02T15:53:56Z"
+  },
+  {
+    "type": "event",
+    "id": "wp.stolaf.edu/calendar?id=114660",
+    "source": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events",
+    "summary": "Fall Break (no classes)",
+    "start": "2026-10-10",
+    "end": "2026-10-14",
+    "all_day": true,
+    "tz": "America/Chicago",
+    "url": "https://wp.stolaf.edu/calendar/event/fall-break-no-classes-3/",
+    "categories": ["Academic Year"],
+    "created": "2026-05-07T21:12:36Z",
+    "modified": "2026-09-04T15:08:44Z"
+  }
+]
