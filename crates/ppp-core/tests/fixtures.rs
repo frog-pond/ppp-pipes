@@ -57,10 +57,13 @@ const INVALID: &[(&str, &str)] = &[
     ("empty-summary.json", "/summary"),
     ("end-and-duration.json", ""),
     ("local-exdate-without-tz.json", ""),
+    ("local-rdate-end-without-tz.json", ""),
+    ("local-rdate-without-tz.json", ""),
     ("local-without-tz.json", ""),
     ("missing-id.json", ""),
     ("missing-start.json", ""),
     ("organizer-extra-field.json", "/organizers/0"),
+    ("rdate-not-object.json", "/rdates/0"),
     ("unknown-field.json", ""),
     ("unknown-tz.json", "/tz"),
 ];

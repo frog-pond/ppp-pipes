@@ -126,9 +126,7 @@ def event-from-row [source: any, tz: any]: record -> record {
         keywords: ($row.keywords? | default [] | uniq)
         organizers: ($row.organizers? | default ($row.organizer? | organizers))
         rrule: $row.rrule?
-        # `from ics` gives each RDATE a start and, for a period, an end;
-        # the event schema keeps the starts.
-        rdates: ($row.rdates? | default [] | each { get start })
+        rdates: ($row.rdates? | default [] | each { drop-empty })
         exdates: ($row.exdates? | default [])
         recurrence_id: $row.recurrence_id?
         created: $row.created?

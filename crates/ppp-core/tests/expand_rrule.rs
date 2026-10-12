@@ -275,7 +275,7 @@ fn a_period_rdate_occurrence_ends_when_its_period_does() {
 }
 
 #[test]
-fn unexpanded_events_list_their_rdates_starts() {
+fn unexpanded_events_keep_their_rdates_periods() {
     let ics = "BEGIN:VCALENDAR\nX-WR-TIMEZONE:America/Chicago\nBEGIN:VEVENT\nUID:p@example.edu\nSUMMARY:Fair\nDTSTART:20261013T120000\nRDATE;VALUE=PERIOD:20261014T090000/PT8H\nRDATE:20261015T120000\nEND:VEVENT\nEND:VCALENDAR\n";
     let registry = Registry::stdlib().unwrap();
     let time_fields = &registry.record_type("event").unwrap().time_fields;
@@ -289,6 +289,9 @@ fn unexpanded_events_list_their_rdates_starts() {
     assert_eq!(registry.validate(0, &json), []);
     assert_eq!(
         json["rdates"],
-        json!(["2026-10-14T09:00:00", "2026-10-15T12:00:00"])
+        json!([
+            {"start": "2026-10-14T09:00:00", "end": "2026-10-14T17:00:00"},
+            {"start": "2026-10-15T12:00:00"}
+        ])
     );
 }

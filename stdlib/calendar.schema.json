@@ -39,7 +39,20 @@
           "then": { "required": ["tz"] }
         },
         {
-          "if": { "properties": { "rdates": { "contains": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/local-date-time" } } }, "required": ["rdates"] },
+          "if": {
+            "properties": {
+              "rdates": {
+                "contains": {
+                  "type": "object",
+                  "anyOf": [
+                    { "properties": { "start": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/local-date-time" } }, "required": ["start"] },
+                    { "properties": { "end": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/local-date-time" } }, "required": ["end"] }
+                  ]
+                }
+              }
+            },
+            "required": ["rdates"]
+          },
           "then": { "required": ["tz"] }
         },
         {
@@ -105,7 +118,18 @@
           }
         },
         "rrule": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/rrule" },
-        "rdates": { "type": "array", "items": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/when" } },
+        "rdates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "start": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/when" },
+              "end": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/when" }
+            },
+            "required": ["start"],
+            "unevaluatedProperties": false
+          }
+        },
         "exdates": { "type": "array", "items": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/when" } },
         "series": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/text" },
         "recurrence_id": { "$ref": "https://pipes.frogpond.tech/stdlib/common/1#/$defs/when" },

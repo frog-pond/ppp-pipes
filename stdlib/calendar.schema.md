@@ -30,7 +30,7 @@ The event is closed: any field not listed here fails validation. Put source fiel
 
 #### How times are written
 
-`start`, `end`, `rdates`, `exdates` and `recurrence_id` are `when` fields, so each can be a date, an instant or a local date-time. Within one event they follow one rule, which `ppp` applies when it writes the record:
+`start`, `end`, `recurrence_id`, the items of `exdates`, and the `start` and `end` of each item of `rdates` are `when` fields, so each can be a date, an instant or a local date-time. Within one event they follow one rule, which `ppp` applies when it writes the record:
 
 - `all_day: true` → dates: `"2026-10-14"`;
 - else, with `tz` → local date-times in that zone: `"2026-10-14T19:30:00"`;
@@ -85,7 +85,7 @@ An event that repeats can arrive in two shapes.
 | Field | Type | Meaning |
 |---|---|---|
 | `rrule` | `rrule` | How the event repeats, as in RFC 5545. |
-| `rdates` | `when[]` | Extra occurrences the rule does not produce. Each lasts as long as the event. |
+| `rdates` | list of `{start, end}` | Extra occurrences the rule does not produce. `start` (a `when`) is required. `end` (a `when`) is optional: without it, the occurrence lasts as long as the event. |
 | `exdates` | `when[]` | Occurrences the rule produces that do not happen. |
 
 **As occurrences.** Each occurrence is its own event. This is what `expand rrule` produces, and what feeds like Google Calendar's give.
@@ -114,5 +114,5 @@ Most fields check only themselves. These rules look at more than one:
 1. Unless `partial` is `true`, `summary` and `start` are required.
 2. `end` and `duration` cannot both appear.
 3. If `all_day` is `true`, `start` and `end` must be dates.
-4. If `start`, `end`, `recurrence_id`, or any item of `rdates` or `exdates` is a local date-time, `tz` is required.
+4. If `start`, `end`, `recurrence_id`, any item of `exdates`, or the `start` or `end` of any item of `rdates` is a local date-time, `tz` is required.
 5. `location` needs `name` or `place`.
