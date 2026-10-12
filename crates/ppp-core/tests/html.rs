@@ -62,3 +62,14 @@ fn convert_turns_html_values_into_text_and_keeps_null() {
     );
     assert!(convert(Value::test_nothing(), head).unwrap().is_nothing());
 }
+
+#[test]
+fn convert_refuses_input_that_is_not_text() {
+    use ppp_core::commands::html_to_text::convert;
+    let err = convert(
+        Value::test_record(Default::default()),
+        nu_protocol::Span::test_data(),
+    )
+    .unwrap_err();
+    assert_eq!(err.message, "expected text, got record");
+}
