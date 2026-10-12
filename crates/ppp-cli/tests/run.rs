@@ -110,7 +110,7 @@ fn pipes_that_cannot_load_exit_2() {
 #[test]
 #[ignore]
 fn campus_week_live() {
-    let out = ppp(&["run", "campus-week", "--days", "7"]);
+    let out = ppp(&["run", "campus-week", "--within", "3day"]);
     let events = records(&out);
     assert!(!events.is_empty());
     assert!(

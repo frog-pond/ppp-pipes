@@ -14,14 +14,14 @@ const SOURCE = "https://www.stolaf.edu/apps/calendar/ical.cfm"
 # Upcoming events from the St. Olaf calendar.
 @category pipes
 @search-terms calendar events
-@example "Next three days" { campus-week --days 3 }
+@example "Next three days" { campus-week --within 3day }
 export def main [
-    --days: int = 7  # How far ahead to look
+    --within: duration = 1wk  # How far ahead to look
 ]: nothing -> table {
     use pipes *
     let now = date now
     http get --raw $SOURCE
     | from ics
-    | during $now ($now + ($days * 1day))
+    | during $now ($now + $within)
     | into event --source $SOURCE
 }

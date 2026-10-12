@@ -143,7 +143,7 @@ http get $url | from ics | expand rrule --from (date now) --until ((date now) + 
 pipe get campus-week {days: 3}
 ```
 
-Pipe files run unchanged: `use pipes/campus-week.nu; campus-week --days 3`.
+Pipe files run unchanged: `use pipes/campus-week.nu; campus-week --within 3day`.
 
 Outside the runner there is no sandbox, and `http get` is nushell's own, without our cache. `pipe get` is the exception: it runs the full sandboxed engine inside the plugin process, with the cache and validation.
 
