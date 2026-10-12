@@ -20,8 +20,10 @@ export def main [
 ]: nothing -> table {
     use pipes *
     let now = date now
+    let until = $now + $within
     http get --raw $SOURCE
     | from ics
-    | during $now ($now + $within)
+    | expand rrule --from $now --until $until
+    | during $now $until
     | into event --source $SOURCE
 }
