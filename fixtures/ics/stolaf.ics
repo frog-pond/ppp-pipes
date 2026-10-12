@@ -1,0 +1,138 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Calendar - ECPv6.18.0//NONSGML v1.0//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Calendar
+X-ORIGINAL-URL:https://wp.stolaf.edu/calendar
+X-WR-CALDESC:Events for Calendar
+REFRESH-INTERVAL;VALUE=DURATION:PT1H
+X-Robots-Tag:noindex
+X-PUBLISHED-TTL:PT1H
+BEGIN:VTIMEZONE
+TZID:America/Chicago
+BEGIN:DAYLIGHT
+TZOFFSETFROM:-0600
+TZOFFSETTO:-0500
+TZNAME:CDT
+DTSTART:20250309T080000
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:-0500
+TZOFFSETTO:-0600
+TZNAME:CST
+DTSTART:20251102T070000
+END:STANDARD
+BEGIN:DAYLIGHT
+TZOFFSETFROM:-0600
+TZOFFSETTO:-0500
+TZNAME:CDT
+DTSTART:20260308T080000
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:-0500
+TZOFFSETTO:-0600
+TZNAME:CST
+DTSTART:20261101T070000
+END:STANDARD
+BEGIN:DAYLIGHT
+TZOFFSETFROM:-0600
+TZOFFSETTO:-0500
+TZNAME:CDT
+DTSTART:20270314T080000
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:-0500
+TZOFFSETTO:-0600
+TZNAME:CST
+DTSTART:20271107T070000
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20260911
+DTEND;VALUE=DATE:20261102
+DTSTAMP:20260911T174843Z
+CREATED:20260824T144725Z
+LAST-MODIFIED:20260911T174843Z
+UID:10038154-1789084800-1793577599@wp.stolaf.edu
+SUMMARY:Brenda Berkman ’73: Thirty-Six Views of One World Trade Center
+DESCRIPTION:Marking a quarter of a century since the September 11\, 2001 attacks\, the Flaten Art Museum highlights a print series from its collection: Thirty-Six Views of One World Trade Center by St. Olaf alumna Brenda Berkman ’73. Berkman — the sole named class plaintiff who opened the New York City Fire Department to women firefighters in 1982 — was a fire officer and first responder at the World Trade Center on 9/11\, witnessing the destruction and loss that reverberated across the country.
+URL:https://wp.stolaf.edu/calendar/event/brenda-berkman-36-views-of-one-world-trade-center/
+CATEGORIES:Alumni,Performing and Visual Arts
+ORGANIZER;CN="Flaten Art Museum":MAILTO:beckerj@stolaf.edu
+LOCATION:Center for Art and Dance Groot Gallery
+GEO:44.4582983;-93.161604
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20260911
+DTEND;VALUE=DATE:20261207
+DTSTAMP:20260827T201045Z
+CREATED:20260601T143927Z
+LAST-MODIFIED:20260827T201045Z
+UID:10037911-1789084800-1796601599@wp.stolaf.edu
+SUMMARY:Michon Weeks: Mystic Topographies
+DESCRIPTION:Flaten Art Museum Exhibition – Michon Weeks: Mystic Topographies \nFor Michon Weeks\, painting is a contemplative practice akin to meditation and prayer. Working in egg tempera\, oil\, and acrylic\, Weeks paints the quiet terrain of everyday life: yards\, tree lines\, and utility poles. But these paintings do not describe the ordinary elements of the Minnesota landscape. They are the artist’s method for slow\, sustained presence—and an invitation to the viewer to stay with something long enough for meaning to surface. \nThis body of work has emerged alongside a sustained creative exchange with author\, scholar\, and fellow St. Olaf professor Trish Zimmerman. Audio excerpts from the mystics\, read and recorded by Weeks and Zimmerman\, invite visitors to explore the sacred mystery of perception.
+URL:https://wp.stolaf.edu/calendar/event/michon-weeks-mystic-topographies/
+CATEGORIES:Performing and Visual Arts
+ORGANIZER;CN="Flaten Art Museum":MAILTO:beckerj@stolaf.edu
+LOCATION:Center for Art and Dance
+GEO:44.4582983;-93.161604
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20261010
+DTEND;VALUE=DATE:20261014
+DTSTAMP:20260904T150844Z
+CREATED:20260507T211236Z
+LAST-MODIFIED:20260904T150844Z
+UID:10037839-1791590400-1791935999@wp.stolaf.edu
+SUMMARY:Fall Break (no classes)
+DESCRIPTION:
+URL:https://wp.stolaf.edu/calendar/event/fall-break-no-classes-3/
+CATEGORIES:Academic Year
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/Chicago:20261011T160000
+DTEND;TZID=America/Chicago:20261013T110000
+DTSTAMP:20260929T190952Z
+CREATED:20260929T190952Z
+LAST-MODIFIED:20260929T190952Z
+UID:10038652-1791734400-1791889200@wp.stolaf.edu
+SUMMARY:NetVue Undergraduate Education Conference
+DESCRIPTION:The Lutheran Center invites St. Olaf faculty and staff to attend the conference’s plenary and breakout sessions Sunday\, October 11-Tuesday\, October 13. To view the schedule\, please follow this link: https://wp.stolaf.edu/lutherancenter/netvue-regional-conference-2026/.
+URL:https://wp.stolaf.edu/calendar/event/netvue-undergraduate-education-conference/
+CATEGORIES:Conferences/Camps
+LOCATION:Buntrock Commons\, 1521 St Olaf Ave\, Northfield\, MN\, United States
+GEO:44.468533;-93.162848
+X-APPLE-STRUCTURED-LOCATION;VALUE=URI;X-ADDRESS=Buntrock Commons 1521 St Olaf Ave Northfield MN United States;X-APPLE-RADIUS=500;X-TITLE=1521 St Olaf Ave:geo:-93.162848,44.468533
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/Chicago:20261015T201500
+DTEND;TZID=America/Chicago:20261015T211500
+DTSTAMP:20261009T152516Z
+CREATED:20260728T205008Z
+LAST-MODIFIED:20261009T152516Z
+UID:10038038-1792095300-1792098900@wp.stolaf.edu
+SUMMARY:Student Recital
+DESCRIPTION:Faculty\, staff\, students\, and the wider community are welcome to attend this Music Department recital\, featuring a variety of students fulfilling their degree requirements. \nThis event is free and open to the public.
+URL:https://wp.stolaf.edu/calendar/event/student-recital-3/
+CATEGORIES:Music,Performing and Visual Arts
+ORGANIZER;CN="Music Department":MAILTO:wessel5@stolaf.edu
+LOCATION:Christiansen Hall of Music 100 Urness Recital Hall
+GEO:44.4582983;-93.161604
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/Chicago:20261016T190000
+DTEND;TZID=America/Chicago:20261016T200000
+DTSTAMP:20260930T190320Z
+CREATED:20260723T190811Z
+LAST-MODIFIED:20260930T190320Z
+UID:10038026-1792177200-1792180800@wp.stolaf.edu
+SUMMARY:Boe Steinway Dedication Recital: Soojung Hong\, piano
+DESCRIPTION:Faculty\, staff\, students\, and the wider community are welcome to attend this faculty/guest recital featuring Soojung Hong\, piano\, and celebrating the new Steinway piano in Boe Memorial Chapel. \nDr. Soojung Hong has won national and international recognition as a pianist\, and performs as a soloist or with ensemble throughout the Midwest and beyond. Her work highlights the music of female composers. See this dedication in her video production of Fanny Mendelssohn’s cycle “Das Jahr” (“The Year”)—supported by the Minnesota State Arts Board’s Artist Initiative Grant— among other notable projects.  \nDr. Hong is also a devoted educator\, and many college campuses welcome her master class presentations and competition adjudications. Notably\, she serves as Founder and Artist Director for the PianoFun Minnesota Festival\, a piano professor at Normandale Community College\, and a piano faculty member at MacPhail Center for Music and North Central University.    \nThis event is free and open to the public.
+URL:https://wp.stolaf.edu/calendar/event/boe-steinway-consecration-recital-soojung-hong-piano/
+CATEGORIES:Music,Performing and Visual Arts
+ORGANIZER;CN="Music Department":MAILTO:wessel5@stolaf.edu
+LOCATION:Boe Memorial Chapel
+GEO:44.4582983;-93.161604
+END:VEVENT
+END:VCALENDAR

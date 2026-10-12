@@ -1,0 +1,61 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//ppp-pipes//fixtures//EN
+X-WR-CALNAME:Campus Events
+X-WR-TIMEZONE:America/Chicago
+X-WR-CALDESC:Concerts\, lectures\, and student events
+BEGIN:VEVENT
+UID:20261014-orchestra@calendar.example.edu
+DTSTAMP:20261011T000000Z
+SUMMARY:Fall Orchestra Concert
+DTSTART;TZID=America/Chicago:20261014T193000
+DTEND;TZID=America/Chicago:20261014T210000
+STATUS:CONFIRMED
+LOCATION:Boe Memorial Chapel\, 1520 St. Olaf Avenue\, Northfield\, MN 55057
+GEO:44.4614;-93.1822
+DESCRIPTION:The orchestra opens its season with Dvořák's Symphony No. 8.\nFree and open to th
+ e public.
+URL:https://www.example.edu/events/fall-orchestra
+CATEGORIES:Music,Concert
+ORGANIZER;CN=Music Department:mailto:music@example.edu
+CREATED:20260806T181107Z
+LAST-MODIFIED:20260902T155315Z
+BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER:-PT1H
+DESCRIPTION:Reminder
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:20261018-family-weekend@calendar.example.edu
+DTSTAMP:20261011T000000Z
+SUMMARY:Family Weekend
+DTSTART;VALUE=DATE:20261017
+DTEND;VALUE=DATE:20261019
+STATUS:CONFIRMED
+LOCATION:Campus-wide
+CATEGORIES:Community
+END:VEVENT
+BEGIN:VEVENT
+UID:weekly-chess@calendar.example.edu
+DTSTAMP:20261011T000000Z
+SUMMARY:Chess Club
+DTSTART:20260908T180000
+DURATION:PT2H
+LOCATION:Buntrock Commons\, Room 143
+CATEGORIES:Clubs
+RRULE:FREQ=WEEKLY;BYDAY=TU;UNTIL=20261215T235959Z
+EXDATE:20261124T180000
+END:VEVENT
+BEGIN:VEVENT
+UID:20261022-lecture@calendar.example.edu
+DTSTAMP:20261011T000000Z
+SUMMARY:Guest Lecture: Pipelines Everywhere
+DTSTART:20261022T160000Z
+DTEND:20261022T171500Z
+STATUS:CANCELLED
+LOCATION:Regents Hall 150
+DESCRIPTION:Cancelled: the speaker's flight was grounded. A new date will be announced.
+ORGANIZER;CN=Computer Science:mailto:cs@example.edu
+END:VEVENT
+END:VCALENDAR

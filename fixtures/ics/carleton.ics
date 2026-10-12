@@ -1,0 +1,160 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Carleton College//Calendar Events//EN
+NAME:Carleton College: Campus Calendar Events
+X-WR-CALNAME:Carleton College: Campus Calendar Events
+TIMEZONE-ID:America/Chicago
+X-WR-TIMEZONE:America/Chicago
+REFRESH-INTERVAL;VALUE=DURATION:PT6H
+X-PUBLISHED-TTL:PT6H
+BEGIN:VEVENT
+UID:80qf65vj24c4hnjrp6urbhoiec
+SEQUENCE:1
+DTSTAMP:20261012T011647
+DTSTART;VALUE=DATE:20260908
+DTEND;VALUE=DATE:20261119
+X-MICROSOFT-CDO-ALLDAYEVENT:TRUE
+X-MICROSOFT-MSNCALENDAR-ALLDAYEVENT:TRUE
+SUMMARY:Gould Library Fall Term Exhibitions
+TRANSP:TRANSPARENT
+LOCATION:Gould Library
+DESCRIPTION:Gould Library hosts a variety of <a href="https://www.carleton
+ .edu/library/exhibitions/current/">exhibitions that rotate throughout the 
+ academic year</a>. This year's programming focuses on celebrating the 100t
+ h year of <a href="https://www.carleton.edu/arboretum/">Cowling Arboretum<
+ /a>.\n\nVisit during fall term to see:\n\n<em>100 Years of the Arb</em>\n\
+ n<em>Carleton’s Herbarium</em>\n\n<em>Lost and Found: Treasures from the
+  Arb</em>\n\n<em>Tim Lloyd: Prairie Vessels</em>\n\n<em>Cowling Arboretum 
+ Contemplative Transit System (C.A.C.T.S) Map</em>\n\n<em>Monuments: Prints
+  by John-Mark Schlink</em>\n\nEvent Details:\nhttps://www.carleton.edu/lib
+ rary/exhibitions/current/\n\nView this event on the Carleton College websi
+ te:\nhttps://www.carleton.edu/_c/uuff
+ORGANIZER;CN="Gould Library":mailto:8hmht0hmg17227b3oqh02sdff8@group.calen
+ dar.google.com
+STATUS:CONFIRMED
+CREATED:20260909T144819
+END:VEVENT
+BEGIN:VEVENT
+UID:la0q9a2ht1hjg7jbi7esrgam8c
+SEQUENCE:0
+DTSTAMP:20261012T011647
+DTSTART;VALUE=DATE:20260924
+DTEND;VALUE=DATE:20261119
+X-MICROSOFT-CDO-ALLDAYEVENT:TRUE
+X-MICROSOFT-MSNCALENDAR-ALLDAYEVENT:TRUE
+SUMMARY:Field Notes: Studio Art Faculty Respond to the Arboretum’s Cente
+ nnial Year
+TRANSP:TRANSPARENT
+LOCATION:Perlman Teaching Museum
+DESCRIPTION:<blockquote>This exhibition presents new work by Carleton stud
+ io art faculty in response to the Carleton College Cowling Arboretum’s l
+ andscapes\, histories\, and ecological significance. It marks the 100th an
+ niversary of the Arboretum\, an 800-acre living laboratory of prairie\, fo
+ rest\, and river habitats that has shaped teaching\, research\, and life o
+ n campus since the 1920s.<span style="color: #000000">\n</span><span style
+ ="color: #000000">\nThe accompanying events program will include talks by 
+ participating studio art faculty\, offering insight into their creative pr
+ ocesses.</span></blockquote>\n\nView this event on the Carleton College we
+ bsite:\nhttps://www.carleton.edu/_c/utaX
+ORGANIZER;CN="Perlman Teaching Museum":mailto:7l4kbotpo5o218cf1dd40m7e8g@g
+ roup.calendar.google.com
+STATUS:CONFIRMED
+CREATED:20260121T160129
+END:VEVENT
+BEGIN:VEVENT
+UID:gmnm0o160ok6onorumja1oafng_20261011T210000Z
+SEQUENCE:0
+DTSTAMP:20261012T011647
+DTSTART:20261011T160000
+DTEND:20261011T220000
+SUMMARY:QRC drop-in tutoring
+TRANSP:TRANSPARENT
+LOCATION:QRC\, 4th Libe\, East Wing
+DESCRIPTION:Students can drop in for help with math\, statistics\, data\, 
+ and graphs in any QRE course. To make an appointment or to see who's worki
+ ng\, go to <a href="http://go.carleton.edu/QRC">go.carleton.edu/QRC</a>\n
+ \nView this event on the Carleton College website:\nhttps://www.carleton.e
+ du/_c/roUA
+ORGANIZER;CN="Quantitative Resource Center":mailto:4eq2p4rs1fbo7s7t1k0plfl
+ 90o@group.calendar.google.com
+STATUS:CONFIRMED
+CREATED:20260916T195435
+END:VEVENT
+BEGIN:VEVENT
+UID:d32qaac9f8nuo3460859id79ig_20261012T000000Z
+SEQUENCE:0
+DTSTAMP:20261012T011647
+DTSTART:20261011T190000
+DTEND:20261011T200000
+SUMMARY:Catholic Bible Study
+TRANSP:TRANSPARENT
+LOCATION:Christian Chapel
+DESCRIPTION:The Catholic Student Association will be reading through the G
+ ospel according to Matthew and holding weekly conversations to foster grow
+ th and understanding.\n\nView this event on the Carleton College website:\
+ nhttps://www.carleton.edu/_c/roPN
+ORGANIZER;CN="Chaplain's Office":mailto:gc0r4cojm5g3aensafau0dppd8@group.c
+ alendar.google.com
+STATUS:CONFIRMED
+CREATED:20260908T142429
+END:VEVENT
+BEGIN:VEVENT
+UID:vcal_10972-athletics.carleton.edu
+SEQUENCE:0
+DTSTAMP:20261012T011647
+DTSTART:20261012T093000
+DTEND:20261012T123000
+SUMMARY:Carleton College Men's Golf at MIAC Championships
+LOCATION:Brooklyn Park\, Minn. / Edinburgh USA
+DESCRIPTION:Carleton College Men's Golf at MIAC Championships\n\n\nView th
+ is event on the Carleton College website:\nhttps://www.carleton.edu/_c/und
+ efined
+URL;VALUE=URI:https://athletics.carleton.edu/calendar.aspx?game_id=10972&a
+ mp\;sport_id=19
+PRIORITY:3
+END:VEVENT
+BEGIN:VEVENT
+UID:famkt1q7c1jiori9gt58u97nl0
+SEQUENCE:0
+DTSTAMP:20261012T011647
+DTSTART:20261012T110000
+DTEND:20261012T140000
+SUMMARY:DIS Study Abroad in Scandinavia Info Table
+TRANSP:TRANSPARENT
+LOCATION:Sayles Table 3
+DESCRIPTION:<span data-sheets-root="1">DIS in Copenhagen and Stockholm off
+ ers 300+ courses taught in English by local experts\, with study tours aro
+ und Europe and to the Arctic. Deepen your knowledge\, broaden your skills\
+ , and apply your ideas alongside peers from other top U.S. colleges. Major
+ s include Bio/Pre-Med\, ENTS\, and Psych/Neuro\, plus niche fields like As
+ tropolitics\, Urban Studies\, and more. https://www.youtube.com/c/StudyAbr
+ oadDIS</span>\n\nEvent Details:\nhttps://disabroad.org/\n\nView this event
+  on the Carleton College website:\nhttps://www.carleton.edu/_c/uumG
+ORGANIZER;CN="Off Campus Studies":mailto:4iqiub2cjhnjgpqu2joiv600f8@group.
+ calendar.google.com
+STATUS:CONFIRMED
+CREATED:20260917T180011
+END:VEVENT
+BEGIN:VEVENT
+UID:r1dpcidfj801hk8b91j9rj2sns
+SEQUENCE:0
+DTSTAMP:20261012T011647
+DTSTART:20261012T110000
+DTEND:20261012T140000
+SUMMARY:DIS Study Abroad in Scandinavia Info Table
+TRANSP:TRANSPARENT
+LOCATION:Sayles Table 3
+DESCRIPTION:<span data-sheets-root="1">DIS in Copenhagen and Stockholm off
+ ers 300+ courses taught in English by local experts\, with study tours aro
+ und Europe and to the Arctic. Deepen your knowledge\, broaden your skills\
+ , and apply your ideas alongside peers from other top U.S. colleges. Major
+ s include Bio/Pre-Med\, ENTS\, and Psych/Neuro\, plus niche fields like As
+ tropolitics\, Urban Studies\, and more. https://www.youtube.com/c/StudyAbr
+ oadDIS</span>\n\nEvent Details:\nhttps://disabroad.org/\n\nView this event
+  on the Carleton College website:\nhttps://www.carleton.edu/_c/uumH
+ORGANIZER;CN="Off Campus Studies":mailto:4iqiub2cjhnjgpqu2joiv600f8@group.
+ calendar.google.com
+STATUS:CONFIRMED
+CREATED:20260820T104308
+END:VEVENT
+END:VCALENDAR
