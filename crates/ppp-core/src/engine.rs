@@ -59,7 +59,7 @@ impl Engine {
         };
         state
             .merge_delta(delta)
-            .expect("the built-in command set and pipes module always merge");
+            .expect("the built-in command set and ppp module always merge");
         // Some nushell commands expect a working directory. Pipes have no
         // filesystem access, so the root is a neutral choice that exists on
         // every platform.

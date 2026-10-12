@@ -60,7 +60,7 @@ crates/
 stdlib/
   common.schema.json
   calendar.schema.json
-  pipes/mod.nu                 the `ppp` nushell module (§6)
+  ppp/mod.nu                   the `ppp` nushell module (§6)
 pipes/                         acceptance pipes (§7)
 fixtures/
   ics/                         KDL examples as .ics, saved live feeds, edge cases
