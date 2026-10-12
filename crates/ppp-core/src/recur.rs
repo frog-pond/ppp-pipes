@@ -16,8 +16,24 @@ pub struct Series<'a> {
     /// DTSTART, in the zone the rule repeats in.
     pub start: &'a Zoned,
     pub rrule: Option<&'a str>,
-    pub rdates: &'a [Zoned],
+    pub rdates: &'a [Rdate],
     pub exdates: &'a [Zoned],
+}
+
+/// One RDATE value: an extra start, and for a PERIOD value, its own end.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Rdate {
+    pub start: Zoned,
+    pub end: Option<Zoned>,
+}
+
+/// One occurrence of a series.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Occurrence {
+    pub start: Zoned,
+    /// The end an RDATE period gives this occurrence. Other occurrences
+    /// last as long as the series does.
+    pub period_end: Option<Zoned>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -30,16 +46,16 @@ pub enum RecurError {
     TooMany,
 }
 
-/// The start of every occurrence of `series` that overlaps [from, until),
-/// in the series' zone, earliest first. Each occurrence lasts `length`; one
-/// with no length is a moment and must start inside the window. DTSTART
-/// always counts as an occurrence (RFC 5545 §3.8.5.3).
+/// Every occurrence of `series` that overlaps [from, until), in the series'
+/// zone, earliest first. Each occurrence lasts `length`, or as long as its
+/// RDATE period; one with no length is a moment and must start inside the
+/// window. DTSTART always counts as an occurrence (RFC 5545 §3.8.5.3).
 pub fn occurrences(
     series: &Series,
     length: SignedDuration,
     from: Timestamp,
     until: Timestamp,
-) -> Result<Vec<Zoned>, RecurError> {
+) -> Result<Vec<Occurrence>, RecurError> {
     let zone = series.start.time_zone().clone();
     let name = zone
         .iana_name()
@@ -73,7 +89,7 @@ pub fn occurrences(
     let mut rdates: Vec<_> = series
         .rdates
         .iter()
-        .map(|z| to_chrono(z.timestamp()))
+        .map(|rdate| to_chrono(rdate.start.timestamp()))
         .collect();
     rdates.push(dt_start);
     let exdates = series
@@ -82,8 +98,21 @@ pub fn occurrences(
         .map(|z| to_chrono(z.timestamp()))
         .collect();
 
+    let period_end = |start: Timestamp| {
+        series
+            .rdates
+            .iter()
+            .find(|rdate| rdate.start.timestamp() == start)
+            .and_then(|rdate| rdate.end.as_ref())
+            .map(|end| end.with_time_zone(zone.clone()))
+    };
+    let longest = series
+        .rdates
+        .iter()
+        .filter_map(|rdate| Some(rdate.end.as_ref()?.duration_since(&rdate.start)))
+        .fold(length, SignedDuration::max);
     // `after` and `before` are inclusive; the exact window is applied below.
-    let earliest = from.checked_sub(length).unwrap_or(from);
+    let earliest = from.checked_sub(longest).unwrap_or(from);
     let result = set
         .set_rdates(rdates)
         .set_exdates(exdates)
@@ -94,16 +123,23 @@ pub fn occurrences(
         return Err(RecurError::TooMany);
     }
 
-    let mut starts: Vec<Zoned> = result
+    let mut found: Vec<Occurrence> = result
         .dates
         .iter()
         .map(|dt| {
-            Timestamp::new(dt.timestamp(), dt.timestamp_subsec_nanos() as i32)
-                .expect("chrono times from jiff stay in jiff's range")
-                .to_zoned(zone.clone())
+            let start = Timestamp::new(dt.timestamp(), dt.timestamp_subsec_nanos() as i32)
+                .expect("chrono times from jiff stay in jiff's range");
+            Occurrence {
+                start: start.to_zoned(zone.clone()),
+                period_end: period_end(start),
+            }
         })
-        .filter(|start| {
-            let begin = start.timestamp();
+        .filter(|occurrence| {
+            let begin = occurrence.start.timestamp();
+            let length = occurrence
+                .period_end
+                .as_ref()
+                .map_or(length, |end| end.timestamp().duration_since(begin));
             let overlaps = if length.is_zero() {
                 begin >= from
             } else {
@@ -112,8 +148,8 @@ pub fn occurrences(
             overlaps && begin < until
         })
         .collect();
-    starts.dedup();
-    Ok(starts)
+    found.dedup();
+    Ok(found)
 }
 
 /// Rewrites a rule's `UNTIL` in UTC, and returns it. RFC 5545 has `UNTIL` be

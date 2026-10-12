@@ -34,6 +34,10 @@
     "attendance": "online",
     "online": { "url": "https://meet.example.com/standup", "platform": "meet" },
     "rrule": "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR",
+    "rdates": [
+      { "start": "2026-11-28T10:00:00-05:00", "end": "2026-11-28T11:00:00-05:00" },
+      { "start": "2026-12-05T09:30:00-05:00" }
+    ],
     "exdates": ["2026-11-26T09:30:00-05:00", "2026-11-27T09:30:00-05:00"]
   }
 ]

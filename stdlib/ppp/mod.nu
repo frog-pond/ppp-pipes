@@ -126,7 +126,7 @@ def event-from-row [source: any, tz: any]: record -> record {
         keywords: ($row.keywords? | default [] | uniq)
         organizers: ($row.organizers? | default ($row.organizer? | organizers))
         rrule: $row.rrule?
-        rdates: ($row.rdates? | default [])
+        rdates: ($row.rdates? | default [] | each { drop-empty })
         exdates: ($row.exdates? | default [])
         recurrence_id: $row.recurrence_id?
         created: $row.created?

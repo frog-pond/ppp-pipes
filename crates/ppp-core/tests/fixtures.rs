@@ -45,6 +45,10 @@ fn every_example_is_valid() {
 /// Each invalid fixture and the JSON Pointer its one mistake is reported at.
 const INVALID: &[(&str, &str)] = &[
     ("agent-both.json", "/organizers/0"),
+    ("all-day-exdate-with-time.json", "/exdates/0"),
+    ("all-day-rdate-end-with-time.json", "/rdates/0/end"),
+    ("all-day-rdate-with-time.json", "/rdates/0/start"),
+    ("all-day-recurrence-id-with-time.json", "/recurrence_id"),
     ("all-day-with-time.json", "/start"),
     ("bad-currency.json", "/cost"),
     ("bad-duration.json", "/duration"),
@@ -57,10 +61,13 @@ const INVALID: &[(&str, &str)] = &[
     ("empty-summary.json", "/summary"),
     ("end-and-duration.json", ""),
     ("local-exdate-without-tz.json", ""),
+    ("local-rdate-end-without-tz.json", ""),
+    ("local-rdate-without-tz.json", ""),
     ("local-without-tz.json", ""),
     ("missing-id.json", ""),
     ("missing-start.json", ""),
     ("organizer-extra-field.json", "/organizers/0"),
+    ("rdate-not-object.json", "/rdates/0"),
     ("unknown-field.json", ""),
     ("unknown-tz.json", "/tz"),
 ];

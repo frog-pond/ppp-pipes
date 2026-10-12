@@ -44,7 +44,8 @@ fn event_time_fields() {
             ("end".to_string(), TimeKind::When),
             ("exdates[]".to_string(), TimeKind::When),
             ("modified".to_string(), TimeKind::Instant),
-            ("rdates[]".to_string(), TimeKind::When),
+            ("rdates[].end".to_string(), TimeKind::When),
+            ("rdates[].start".to_string(), TimeKind::When),
             ("recurrence_id".to_string(), TimeKind::When),
             ("start".to_string(), TimeKind::When),
         ]

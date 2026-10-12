@@ -256,3 +256,42 @@ fn all_day_occurrences_last_whole_days_across_dst() {
         }
     }
 }
+
+#[test]
+fn a_period_rdate_occurrence_ends_when_its_period_does() {
+    let ics = "BEGIN:VCALENDAR\nX-WR-TIMEZONE:America/Chicago\nBEGIN:VEVENT\nUID:p@example.edu\nSUMMARY:Fair\nDTSTART:20261013T120000\nDTEND:20261013T130000\nRDATE;VALUE=PERIOD:20261014T090000/PT8H\nEND:VEVENT\nEND:VCALENDAR\n";
+    let events = expanded(ics, "2026-10-01T00:00:00Z", "2026-11-01T00:00:00Z");
+    let times: Vec<(Json, Json)> = events
+        .iter()
+        .map(|e| (e["start"].clone(), e["end"].clone()))
+        .collect();
+    assert_eq!(
+        times,
+        [
+            (json!("2026-10-13T12:00:00"), json!("2026-10-13T13:00:00")),
+            (json!("2026-10-14T09:00:00"), json!("2026-10-14T17:00:00")),
+        ]
+    );
+}
+
+#[test]
+fn unexpanded_events_keep_their_rdates_periods() {
+    let ics = "BEGIN:VCALENDAR\nX-WR-TIMEZONE:America/Chicago\nBEGIN:VEVENT\nUID:p@example.edu\nSUMMARY:Fair\nDTSTART:20261013T120000\nRDATE;VALUE=PERIOD:20261014T090000/PT8H\nRDATE:20261015T120000\nEND:VEVENT\nEND:VCALENDAR\n";
+    let registry = Registry::stdlib().unwrap();
+    let time_fields = &registry.record_type("event").unwrap().time_fields;
+    let row = Engine::new()
+        .eval(
+            "use ppp *; $in | from ics | into event | first",
+            Value::test_string(ics),
+        )
+        .unwrap();
+    let json = record_to_json(&row, time_fields).unwrap();
+    assert_eq!(registry.validate(0, &json), []);
+    assert_eq!(
+        json["rdates"],
+        json!([
+            {"start": "2026-10-14T09:00:00", "end": "2026-10-14T17:00:00"},
+            {"start": "2026-10-15T12:00:00"}
+        ])
+    );
+}
