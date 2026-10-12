@@ -1,4 +1,4 @@
-//! The sandboxed engine: evaluation, the embedded `pipes` module, and the
+//! The sandboxed engine: evaluation, the embedded `ppp` module, and the
 //! command set.
 
 use std::path::Path;
@@ -38,7 +38,7 @@ fn definitions_persist_between_calls() {
 #[test]
 fn the_pipes_module_is_embedded() {
     let mut engine = Engine::new();
-    engine.eval("use pipes *", Value::test_nothing()).unwrap();
+    engine.eval("use ppp *", Value::test_nothing()).unwrap();
 }
 
 #[test]
@@ -72,7 +72,20 @@ fn externals_and_filesystem_commands_are_not_registered() {
 #[test]
 fn our_commands_do_not_shadow_nushell_builtins() {
     let full = nu_command::add_shell_command_context(nu_cmd_lang::create_default_context());
-    for name in ["from ics", "into event", "drop-empty", "during"] {
+    for name in [
+        "from ics",
+        "from tribe-events",
+        "from presence",
+        "html to-text",
+        "to pipes-json",
+        "validate",
+        "pipe get",
+        "expand rrule",
+        "into event",
+        "drop-empty",
+        "during",
+        "uniq-events",
+    ] {
         assert!(
             full.find_decl(name.as_bytes(), &[]).is_none(),
             "nushell already has {name}"
@@ -123,4 +136,15 @@ fn parse_warnings_are_kept() {
     assert_eq!(warnings.len(), 1, "{warnings:?}");
     assert!(warnings[0].contains("old is deprecated"), "{}", warnings[0]);
     assert!(engine.take_warnings().is_empty());
+}
+
+#[test]
+fn the_same_source_can_run_twice() {
+    // nushell's parser caches blocks by source; a cached block came back
+    // without its compiled form, so the second run failed.
+    let mut engine = Engine::new();
+    for i in 0..3 {
+        let out = engine.eval("$in | to nuon", Value::test_int(i)).unwrap();
+        assert_eq!(out.coerce_into_string().unwrap(), i.to_string());
+    }
 }

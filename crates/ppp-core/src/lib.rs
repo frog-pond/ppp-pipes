@@ -1,7 +1,13 @@
+pub mod cache;
 pub mod commands;
 pub mod engine;
+pub mod host;
+pub mod html;
+pub mod html_query;
+pub mod http;
 pub mod ics;
 pub mod pipe;
+pub mod recur;
 pub mod schema;
 pub mod serialize;
 pub mod time;

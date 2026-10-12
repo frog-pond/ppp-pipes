@@ -4,18 +4,22 @@
 //! commands, the data commands listed in `bind_data_commands`, and our own.
 //! Nothing that runs external programs or touches the filesystem is
 //! registered, so a pipe that tries gets "command not found". The `pipes`
-//! module is embedded and loaded as a virtual directory, so `use pipes *`
+//! module is embedded and loaded as a virtual directory, so `use ppp *`
 //! works without files on disk.
 
+use std::sync::{Arc, Mutex};
+
+use jiff::SignedDuration;
 use nu_engine::eval_block;
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet, VirtualPath};
-use nu_protocol::{PipelineData, Span, Value, format_cli_error};
+use nu_protocol::{PipelineData, Signals, Span, Value, format_cli_error};
 
-use crate::commands;
+use crate::commands::{self, Context};
+use crate::host::Host;
 
-/// The embedded `pipes` nushell module.
-const PIPES_MODULE: &str = include_str!("../../../stdlib/pipes/mod.nu");
+/// The embedded `ppp` nushell module.
+const PPP_MODULE: &str = include_str!("../../../stdlib/ppp/mod.nu");
 
 /// A rendered nushell diagnostic, ready to print.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -27,37 +31,58 @@ pub struct Engine {
     stack: Stack,
     /// Rendered parse warnings not yet taken by `take_warnings`.
     warnings: Vec<String>,
+    context: Context,
 }
 
 impl Engine {
+    /// An engine with its own default `Host`: no cache, pipes in `./pipes`.
     pub fn new() -> Engine {
-        // `http get` uses rustls, which needs a crypto provider installed
-        // once per process. Later calls are no-ops.
-        nu_command::tls::CRYPTO_PROVIDER.default();
+        Engine::with_host(Arc::new(Host::default()))
+    }
+
+    /// An engine sharing `host` with every other engine of the same run.
+    pub fn with_host(host: Arc<Host>) -> Engine {
+        let context = Context {
+            host: host.clone(),
+            refresh: Arc::new(Mutex::new(None)),
+        };
         let mut state = nu_cmd_lang::create_default_context();
         let delta = {
             let mut working_set = StateWorkingSet::new(&state);
             bind_data_commands(&mut working_set);
-            commands::bind(&mut working_set);
-            let file = working_set.add_file("pipes/mod.nu", PIPES_MODULE.as_bytes());
+            commands::bind(&mut working_set, &context);
+            let file = working_set.add_file("ppp/mod.nu", PPP_MODULE.as_bytes());
             let module_file =
-                working_set.add_virtual_path("pipes/mod.nu".into(), VirtualPath::File(file));
-            let _ =
-                working_set.add_virtual_path("pipes".into(), VirtualPath::Dir(vec![module_file]));
+                working_set.add_virtual_path("ppp/mod.nu".into(), VirtualPath::File(file));
+            let _ = working_set.add_virtual_path("ppp".into(), VirtualPath::Dir(vec![module_file]));
             working_set.render()
         };
         state
             .merge_delta(delta)
-            .expect("the built-in command set and pipes module always merge");
-        // Some commands (`http get` among them) need a working directory.
-        // Pipes have no filesystem access, so the root is a neutral choice
-        // that exists on every platform.
+            .expect("the built-in command set and ppp module always merge");
+        // Some nushell commands expect a working directory. Pipes have no
+        // filesystem access, so the root is a neutral choice that exists on
+        // every platform.
         state.add_env_var("PWD".into(), Value::string("/", Span::unknown()));
+        // A timeout sets the host's flag, which stops every engine of the run.
+        state.set_signals(Signals::new(host.interrupt()));
         Engine {
             state,
             stack: Stack::new(),
             warnings: Vec::new(),
+            context,
         }
+    }
+
+    /// The host this engine shares with the rest of its run.
+    pub fn host(&self) -> &Arc<Host> {
+        &self.context.host
+    }
+
+    /// Sets the running pipe's `refresh`, which `http get` uses to decide
+    /// whether a cached response is fresh.
+    pub fn set_refresh(&self, refresh: Option<SignedDuration>) {
+        *self.context.refresh.lock().expect("refresh lock") = refresh;
     }
 
     /// Parses and runs `source` with `input` as its pipeline input, and
@@ -65,8 +90,10 @@ impl Engine {
     pub fn eval(&mut self, source: &str, input: Value) -> Result<Value, EngineError> {
         let block = {
             let mut working_set = StateWorkingSet::new(&self.state);
+            // `parse` would reuse a cached block for repeated source text, and
+            // that block comes back without its compiled form.
             let block =
-                nu_parser::parse(&mut working_set, Some("source"), source.as_bytes(), false);
+                nu_parser::parse_fresh(&mut working_set, Some("source"), source.as_bytes(), false);
             if let Some(err) = working_set.parse_errors.first() {
                 return Err(EngineError(format_cli_error(None, &working_set, err, None)));
             }
@@ -121,7 +148,7 @@ impl Default for Engine {
 }
 
 /// The nushell data commands a pipe may use: no externals, no filesystem,
-/// no plugins. Network access is `http get` only.
+/// no plugins. Network access is our own `http get` (in `commands`).
 fn bind_data_commands(working_set: &mut StateWorkingSet) {
     use nu_command::*;
     macro_rules! bind {
@@ -213,8 +240,7 @@ fn bind_data_commands(working_set: &mut StateWorkingSet) {
         MathSum,
         Generate,
         Seq,
-        // URLs and network
-        HttpGet,
+        // URLs
         UrlBuildQuery,
         UrlDecode,
         UrlEncode,

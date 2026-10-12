@@ -1,14 +1,17 @@
 [workspace]
 resolver = "3"
-members = ["crates/ppp-core", "crates/ppp-cli"]
+members = ["crates/ppp-core", "crates/ppp-cli", "crates/nu_plugin_pipes"]
 
 [workspace.package]
 edition = "2024"
 
 [workspace.dependencies]
 chrono = "0.4.45"
+chrono-tz = "0.10"
 clap = { version = "4", features = ["derive"] }
-jiff = { version = "0.2.38", features = ["tzdb-bundle-always"] }
+dirs = "7"
+htmlize = { version = "1.1", features = ["unescape"] }
+jiff = { version = "0.2.38", features = ["tzdb-bundle-always", "serde"] }
 jsonschema = { version = "0.58.6", default-features = false }
 nu-cmd-lang = "=0.116.1"
 # `os` is needed: other nushell crates turn on nu-protocol's `os` feature, and
@@ -16,6 +19,14 @@ nu-cmd-lang = "=0.116.1"
 nu-command = { version = "=0.116.1", default-features = false, features = ["os", "network", "rustls-tls"] }
 nu-engine = "=0.116.1"
 nu-parser = "=0.116.1"
+nu-plugin = "=0.116.1"
+nu-plugin-test-support = "=0.116.1"
+nu-plugin-protocol = "=0.116.1"
 nu-protocol = { version = "=0.116.1", default-features = false }
+rrule = "0.14"
+scraper = { version = "0.27", default-features = false }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.11"
 thiserror = "2"
+ureq = "~3.4"

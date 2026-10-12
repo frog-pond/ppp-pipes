@@ -5,12 +5,23 @@ edition.workspace = true
 
 [dependencies]
 chrono.workspace = true
+chrono-tz.workspace = true
+htmlize.workspace = true
 jiff.workspace = true
 jsonschema.workspace = true
 nu-cmd-lang.workspace = true
 nu-command.workspace = true
 nu-engine.workspace = true
 nu-parser.workspace = true
+nu-plugin-protocol.workspace = true
 nu-protocol.workspace = true
+rrule.workspace = true
+scraper.workspace = true
+serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 thiserror.workspace = true
+ureq.workspace = true
+
+[dev-dependencies]
+flate2 = "1"

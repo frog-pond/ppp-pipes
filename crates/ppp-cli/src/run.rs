@@ -2,36 +2,92 @@
 //!
 //! Exit codes: 0 when the pipe ran and every record is valid, 1 when any
 //! record fails the boundary check, 2 when the pipe cannot be loaded or
-//! run. Flags are checked by nushell, as for `nu <pipe>.nu <flags>`.
+//! run, or runs past `--timeout`. Flags are checked by nushell, as for
+//! `nu <pipe>.nu <flags>`.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::ExitCode;
+use std::sync::Arc;
+use std::time::Duration;
 
+use clap::Args;
+use ppp_core::host::{Host, HostConfig};
 use ppp_core::pipe::{Pipe, check_records};
-use ppp_core::schema::Registry;
 
+use crate::Lookup;
 use crate::report::{Numbering, print_errors};
 
-pub fn run(pipe: &str, pipes_dir: &Path, args: &[String]) -> ExitCode {
-    match try_run(pipe, pipes_dir, args) {
+#[derive(Args)]
+pub struct Options {
+    #[command(flatten)]
+    lookup: Lookup,
+    /// Where fetched responses are cached [default: the user cache directory]
+    #[arg(long, conflicts_with = "no_cache")]
+    cache_dir: Option<PathBuf>,
+    /// Fetch everything, keeping nothing
+    #[arg(long)]
+    no_cache: bool,
+    /// Stop the pipe after this many seconds
+    #[arg(long, default_value_t = 60)]
+    timeout: u64,
+}
+
+pub fn run(options: &Options, pipe: &str, args: &[String]) -> ExitCode {
+    let host = Arc::new(Host::new(HostConfig {
+        cache_dir: cache_dir(options),
+        pipes_dir: options.lookup.pipes_dir.clone(),
+        ..HostConfig::default()
+    }));
+    let code = match try_run(options, &host, pipe, args) {
         Ok(code) => code,
         Err(message) => {
             eprintln!("{message}");
             ExitCode::from(2)
         }
+    };
+    for warning in host.take_warnings() {
+        eprintln!("{warning}");
     }
+    code
 }
 
-fn try_run(pipe: &str, pipes_dir: &Path, args: &[String]) -> Result<ExitCode, String> {
-    let path = pipe_path(pipe, pipes_dir);
-    let mut loaded = Pipe::load(&path).map_err(|e| format!("ppp: {e}"))?;
-    let records = loaded
-        .run_command_line(args)
-        .map_err(|e| format!("ppp: {e}"))?;
+fn cache_dir(options: &Options) -> Option<PathBuf> {
+    if options.no_cache {
+        return None;
+    }
+    options
+        .cache_dir
+        .clone()
+        .or_else(|| dirs::cache_dir().map(|dir| dir.join("ppp-pipes").join("http")))
+}
+
+fn try_run(
+    options: &Options,
+    host: &Arc<Host>,
+    pipe: &str,
+    args: &[String],
+) -> Result<ExitCode, String> {
+    let path = options.lookup.path(pipe);
+    let mut loaded = Pipe::load_with(&path, host.clone()).map_err(|e| format!("ppp: {e}"))?;
+    let limit = Duration::from_secs(options.timeout);
+    let records = host.with_timeout(limit, || loaded.run_command_line(args));
     for warning in loaded.take_warnings() {
         eprintln!("{warning}");
     }
-    let registry = Registry::stdlib().map_err(|e| format!("ppp: stdlib schemas: {e}"))?;
+    let records = records.map_err(|e| {
+        if host.interrupted() {
+            format!(
+                "ppp: {} ran longer than {}s and was stopped",
+                loaded.info().name,
+                options.timeout
+            )
+        } else {
+            format!("ppp: {e}")
+        }
+    })?;
+    let registry = host
+        .registry()
+        .map_err(|e| format!("ppp: stdlib schemas: {e}"))?;
     match check_records(&registry, loaded.info(), &records) {
         Ok(json) => {
             let text = serde_json::to_string_pretty(&json).expect("JSON values always serialize");
@@ -47,15 +103,5 @@ fn try_run(pipe: &str, pipes_dir: &Path, args: &[String]) -> Result<ExitCode, St
             );
             Ok(ExitCode::from(1))
         }
-    }
-}
-
-/// A pipe name is looked up as `<pipes_dir>/<name>.nu`; anything with a `/`
-/// or ending in `.nu` is a path.
-fn pipe_path(pipe: &str, pipes_dir: &Path) -> PathBuf {
-    if pipe.contains('/') || pipe.ends_with(".nu") {
-        PathBuf::from(pipe)
-    } else {
-        pipes_dir.join(format!("{pipe}.nu"))
     }
 }

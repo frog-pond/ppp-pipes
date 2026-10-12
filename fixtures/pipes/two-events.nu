@@ -12,7 +12,7 @@ export def main [
     --prefix: string = ""     # Text put before each summary
     --loud                    # Shout the summaries
 ]: nothing -> table {
-    use pipes *
+    use ppp *
     "BEGIN:VCALENDAR
 X-WR-TIMEZONE:America/Chicago
 BEGIN:VEVENT

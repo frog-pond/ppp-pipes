@@ -1,0 +1,976 @@
+{
+ "rest_url": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events/?page=1&per_page=50&start_date=2026-10-11 00:00:00&end_date=2028-10-12 23:59:59&status=publish",
+ "next_rest_url": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events/?per_page=50&start_date=2026-10-11+00%3A00%3A00&end_date=2028-10-12+23%3A59%3A59&status=publish&page=2",
+ "total": 632,
+ "total_pages": 13,
+ "events": [
+  {
+   "id": 115785,
+   "global_id": "wp.stolaf.edu/calendar?id=115785",
+   "global_id_lineage": [
+    "wp.stolaf.edu/calendar?id=115785"
+   ],
+   "author": "7361",
+   "status": "publish",
+   "date": "2026-08-11 10:00:06",
+   "date_utc": "2026-08-11 15:00:06",
+   "modified": "2026-09-02 10:53:40",
+   "modified_utc": "2026-09-02 15:53:40",
+   "url": "https://wp.stolaf.edu/calendar/event/st-olaf-orchestra-at-goshen-high-school-goshen-in/",
+   "rest_url": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events/115785",
+   "title": "St. Olaf Orchestra at Goshen High School (Goshen, IN)",
+   "description": "<div data-modular-content-collection><p>The St. Olaf Orchestra, conducted by Chung Park, will perform at Goshen High School on Sunday, Oct. 11, at 4 p.m. during its fall tour. This year&#8217;s program features Richard Strauss&#8217;s epic <em>Death and Transfiguration</em>, the toe-tapping <em>Danzón</em><em> No. 2</em> by Arturo Márquez, and Brahms’s energetic <em>Hungarian Dance No. 2</em>.</p>\n</div>",
+   "excerpt": "",
+   "slug": "st-olaf-orchestra-at-goshen-high-school-goshen-in",
+   "image": false,
+   "all_day": false,
+   "start_date": "2026-10-11 16:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "11",
+    "hour": "16",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-10-11 18:00:00",
+   "end_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "11",
+    "hour": "18",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_start_date": "2026-10-11 21:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "11",
+    "hour": "21",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-10-11 23:00:00",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "11",
+    "hour": "23",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "timezone": "America/Chicago",
+   "timezone_abbr": "CDT",
+   "cost": "",
+   "cost_details": {
+    "currency_symbol": "$",
+    "currency_code": "USD",
+    "currency_position": "prefix",
+    "values": []
+   },
+   "website": "https://wp.stolaf.edu/tickets/orchestra/%20",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [
+    {
+     "name": "Music",
+     "slug": "music",
+     "term_group": 0,
+     "term_taxonomy_id": 54,
+     "taxonomy": "tribe_events_cat",
+     "description": "",
+     "parent": 0,
+     "count": 307,
+     "filter": "raw",
+     "id": 54,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories/54",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories"
+     }
+    }
+   ],
+   "tags": [
+    {
+     "name": "Orchestra",
+     "slug": "orchestra",
+     "term_group": 0,
+     "term_taxonomy_id": 51,
+     "taxonomy": "post_tag",
+     "description": "",
+     "parent": 0,
+     "count": 12,
+     "filter": "raw",
+     "id": 51,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/tags/51",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/tags"
+     }
+    },
+    {
+     "name": "St. Olaf Orchestra",
+     "slug": "st-olaf-orchestra",
+     "term_group": 0,
+     "term_taxonomy_id": 86,
+     "taxonomy": "post_tag",
+     "description": "",
+     "parent": 0,
+     "count": 27,
+     "filter": "raw",
+     "id": 86,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/tags/86",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/tags"
+     }
+    }
+   ],
+   "venue": [],
+   "organizer": [
+    {
+     "id": 18351,
+     "author": "2041",
+     "status": "publish",
+     "date": "2018-09-15 13:45:51",
+     "date_utc": "2018-09-15 18:45:51",
+     "modified": "2018-09-15 13:45:51",
+     "modified_utc": "2018-09-15 18:45:51",
+     "url": "https://wp.stolaf.edu/calendar/organizer/music-organizations/",
+     "organizer": "Music Organizations",
+     "description": "<div data-modular-content-collection></div>",
+     "slug": "music-organizations",
+     "global_id": "wp.stolaf.edu/calendar?id=18351",
+     "global_id_lineage": [
+      "wp.stolaf.edu/calendar?id=18351"
+     ]
+    },
+    {
+     "id": 58950,
+     "author": "3196",
+     "status": "publish",
+     "date": "2022-08-17 21:50:29",
+     "date_utc": "2022-08-18 02:50:29",
+     "modified": "2022-08-17 21:50:29",
+     "modified_utc": "2022-08-18 02:50:29",
+     "url": "https://wp.stolaf.edu/calendar/organizer/music-organizations-2/",
+     "organizer": "music organizations",
+     "description": "<div data-modular-content-collection></div>",
+     "slug": "music-organizations-2",
+     "global_id": "wp.stolaf.edu/calendar?id=58950",
+     "global_id_lineage": [
+      "wp.stolaf.edu/calendar?id=58950"
+     ]
+    },
+    {
+     "id": 58952,
+     "author": "3196",
+     "status": "publish",
+     "date": "2022-08-18 08:12:27",
+     "date_utc": "2022-08-18 13:12:27",
+     "modified": "2022-08-18 08:12:27",
+     "modified_utc": "2022-08-18 13:12:27",
+     "url": "https://wp.stolaf.edu/calendar/organizer/music-organizations-3/",
+     "organizer": "music organizations",
+     "description": "<div data-modular-content-collection></div>",
+     "slug": "music-organizations-3",
+     "global_id": "wp.stolaf.edu/calendar?id=58952",
+     "global_id_lineage": [
+      "wp.stolaf.edu/calendar?id=58952"
+     ]
+    }
+   ],
+   "custom_fields": [],
+   "is_virtual": false,
+   "virtual_url": null,
+   "virtual_video_source": ""
+  },
+  {
+   "id": 117329,
+   "global_id": "wp.stolaf.edu/calendar?id=117329",
+   "global_id_lineage": [
+    "wp.stolaf.edu/calendar?id=117329"
+   ],
+   "author": "3090",
+   "status": "publish",
+   "date": "2026-09-29 14:09:52",
+   "date_utc": "2026-09-29 19:09:52",
+   "modified": "2026-09-29 14:09:52",
+   "modified_utc": "2026-09-29 19:09:52",
+   "url": "https://wp.stolaf.edu/calendar/event/netvue-undergraduate-education-conference/",
+   "rest_url": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events/117329",
+   "title": "NetVue Undergraduate Education Conference",
+   "description": "<div data-modular-content-collection><p>The Lutheran Center invites St. Olaf faculty and staff to attend the conference&#8217;s plenary and breakout sessions Sunday, October 11-Tuesday, October 13. To view the schedule, please follow this link: https://wp.stolaf.edu/lutherancenter/netvue-regional-conference-2026/.</p>\n</div>",
+   "excerpt": "",
+   "slug": "netvue-undergraduate-education-conference",
+   "image": false,
+   "all_day": false,
+   "start_date": "2026-10-11 16:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "11",
+    "hour": "16",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-10-13 11:00:00",
+   "end_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "13",
+    "hour": "11",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_start_date": "2026-10-11 21:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "11",
+    "hour": "21",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-10-13 16:00:00",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "13",
+    "hour": "16",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "timezone": "America/Chicago",
+   "timezone_abbr": "CDT",
+   "cost": "",
+   "cost_details": {
+    "currency_symbol": "$",
+    "currency_code": "USD",
+    "currency_position": "prefix",
+    "values": []
+   },
+   "website": "https://wp.stolaf.edu/lutherancenter/netvue-regional-conference-2026/",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [
+    {
+     "name": "Conferences/Camps",
+     "slug": "conferencescamps",
+     "term_group": 0,
+     "term_taxonomy_id": 17,
+     "taxonomy": "tribe_events_cat",
+     "description": "",
+     "parent": 0,
+     "count": 28,
+     "filter": "raw",
+     "id": 17,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories/17",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories"
+     }
+    }
+   ],
+   "tags": [],
+   "venue": {
+    "id": 493,
+    "author": "1",
+    "status": "publish",
+    "date": "2017-09-21 16:38:29",
+    "date_utc": "2017-09-21 21:38:29",
+    "modified": "2025-05-22 09:44:34",
+    "modified_utc": "2025-05-22 14:44:34",
+    "url": "https://wp.stolaf.edu/calendar/venue/buntrock-commons/",
+    "venue": "Buntrock Commons",
+    "description": "<div data-modular-content-collection></div>",
+    "slug": "buntrock-commons",
+    "address": "1521 St Olaf Ave",
+    "city": "Northfield",
+    "country": "United States",
+    "state": "MN",
+    "geo_lat": 44.468533,
+    "geo_lng": -93.162848,
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "wp.stolaf.edu/calendar?id=493",
+    "global_id_lineage": [
+     "wp.stolaf.edu/calendar?id=493"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 30737,
+     "author": "2684",
+     "status": "publish",
+     "date": "2019-09-19 19:55:10",
+     "date_utc": "2019-09-20 00:55:10",
+     "modified": "2019-09-19 19:55:10",
+     "modified_utc": "2019-09-20 00:55:10",
+     "url": "https://wp.stolaf.edu/calendar/organizer/the-lutheran-center-for-faith-values-and-community/",
+     "organizer": "The Lutheran Center for Faith, Values, and Community",
+     "description": "<div data-modular-content-collection></div>",
+     "slug": "the-lutheran-center-for-faith-values-and-community",
+     "global_id": "wp.stolaf.edu/calendar?id=30737",
+     "global_id_lineage": [
+      "wp.stolaf.edu/calendar?id=30737"
+     ]
+    }
+   ],
+   "custom_fields": [],
+   "is_virtual": false,
+   "virtual_url": null,
+   "virtual_video_source": ""
+  },
+  {
+   "id": 115631,
+   "global_id": "wp.stolaf.edu/calendar?id=115631",
+   "global_id_lineage": [
+    "wp.stolaf.edu/calendar?id=115631"
+   ],
+   "author": "7361",
+   "status": "publish",
+   "date": "2026-08-06 13:26:30",
+   "date_utc": "2026-08-06 18:26:30",
+   "modified": "2026-09-02 10:53:56",
+   "modified_utc": "2026-09-02 15:53:56",
+   "url": "https://wp.stolaf.edu/calendar/event/st-olaf-orchestra-at-troy-high-school-troy-mi/",
+   "rest_url": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events/115631",
+   "title": "St. Olaf Orchestra at Troy High School (Troy, MI)",
+   "description": "<div data-modular-content-collection><p>The St. Olaf Orchestra, conducted by Chung Park, will perform at Troy High School in Troy, Michigan on Monday, Oct. 12 at 7 p.m. during its fall tour. This year&#8217;s program features Richard Strauss&#8217;s epic <em>Death and Transfiguration</em>, the toe-tapping <em>Danzón</em><em> No. 2</em> by Arturo Márquez, and Brahms’s energetic <em>Hungarian Dance No. 2</em>.</p>\n</div>",
+   "excerpt": "",
+   "slug": "st-olaf-orchestra-at-troy-high-school-troy-mi",
+   "image": false,
+   "all_day": false,
+   "start_date": "2026-10-12 19:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "12",
+    "hour": "19",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-10-12 21:00:00",
+   "end_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "12",
+    "hour": "21",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_start_date": "2026-10-13 00:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "13",
+    "hour": "00",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-10-13 02:00:00",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "13",
+    "hour": "02",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "timezone": "America/Chicago",
+   "timezone_abbr": "CDT",
+   "cost": "",
+   "cost_details": {
+    "currency_symbol": "$",
+    "currency_code": "USD",
+    "currency_position": "prefix",
+    "values": []
+   },
+   "website": "https://www.eventbrite.com/e/st-olaf-orchestra-at-troy-high-school-troy-mi-tickets-1994343429885?aff=oddtdtcreator&amp;keep_tld=true",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [
+    {
+     "name": "Music",
+     "slug": "music",
+     "term_group": 0,
+     "term_taxonomy_id": 54,
+     "taxonomy": "tribe_events_cat",
+     "description": "",
+     "parent": 0,
+     "count": 307,
+     "filter": "raw",
+     "id": 54,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories/54",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories"
+     }
+    }
+   ],
+   "tags": [
+    {
+     "name": "Orchestra",
+     "slug": "orchestra",
+     "term_group": 0,
+     "term_taxonomy_id": 51,
+     "taxonomy": "post_tag",
+     "description": "",
+     "parent": 0,
+     "count": 12,
+     "filter": "raw",
+     "id": 51,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/tags/51",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/tags"
+     }
+    },
+    {
+     "name": "St. Olaf Orchestra",
+     "slug": "st-olaf-orchestra",
+     "term_group": 0,
+     "term_taxonomy_id": 86,
+     "taxonomy": "post_tag",
+     "description": "",
+     "parent": 0,
+     "count": 27,
+     "filter": "raw",
+     "id": 86,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/tags/86",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/tags"
+     }
+    }
+   ],
+   "venue": [],
+   "organizer": [
+    {
+     "id": 58950,
+     "author": "3196",
+     "status": "publish",
+     "date": "2022-08-17 21:50:29",
+     "date_utc": "2022-08-18 02:50:29",
+     "modified": "2022-08-17 21:50:29",
+     "modified_utc": "2022-08-18 02:50:29",
+     "url": "https://wp.stolaf.edu/calendar/organizer/music-organizations-2/",
+     "organizer": "music organizations",
+     "description": "<div data-modular-content-collection></div>",
+     "slug": "music-organizations-2",
+     "global_id": "wp.stolaf.edu/calendar?id=58950",
+     "global_id_lineage": [
+      "wp.stolaf.edu/calendar?id=58950"
+     ]
+    },
+    {
+     "id": 58952,
+     "author": "3196",
+     "status": "publish",
+     "date": "2022-08-18 08:12:27",
+     "date_utc": "2022-08-18 13:12:27",
+     "modified": "2022-08-18 08:12:27",
+     "modified_utc": "2022-08-18 13:12:27",
+     "url": "https://wp.stolaf.edu/calendar/organizer/music-organizations-3/",
+     "organizer": "music organizations",
+     "description": "<div data-modular-content-collection></div>",
+     "slug": "music-organizations-3",
+     "global_id": "wp.stolaf.edu/calendar?id=58952",
+     "global_id_lineage": [
+      "wp.stolaf.edu/calendar?id=58952"
+     ]
+    },
+    {
+     "id": 18351,
+     "author": "2041",
+     "status": "publish",
+     "date": "2018-09-15 13:45:51",
+     "date_utc": "2018-09-15 18:45:51",
+     "modified": "2018-09-15 13:45:51",
+     "modified_utc": "2018-09-15 18:45:51",
+     "url": "https://wp.stolaf.edu/calendar/organizer/music-organizations/",
+     "organizer": "Music Organizations",
+     "description": "<div data-modular-content-collection></div>",
+     "slug": "music-organizations",
+     "global_id": "wp.stolaf.edu/calendar?id=18351",
+     "global_id_lineage": [
+      "wp.stolaf.edu/calendar?id=18351"
+     ]
+    }
+   ],
+   "custom_fields": [],
+   "is_virtual": false,
+   "virtual_url": null,
+   "virtual_video_source": ""
+  },
+  {
+   "id": 116720,
+   "global_id": "wp.stolaf.edu/calendar?id=116720",
+   "global_id_lineage": [
+    "wp.stolaf.edu/calendar?id=116720"
+   ],
+   "author": "1",
+   "status": "publish",
+   "date": "2026-09-04 09:54:13",
+   "date_utc": "2026-09-04 14:54:13",
+   "modified": "2026-09-04 09:54:13",
+   "modified_utc": "2026-09-04 14:54:13",
+   "url": "https://wp.stolaf.edu/calendar/event/mens-soccer-vs-university-of-wisconsin-superior/",
+   "rest_url": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events/116720",
+   "title": "Men&#8217;s Soccer vs University of Wisconsin-Superior",
+   "description": "<div data-modular-content-collection><p>Men&#8217;s Soccer vs University of Wisconsin-Superior<br />\nStreaming Video: https://miacsportsnetwork.com/stolaf/</p>\n</div>",
+   "excerpt": "",
+   "slug": "mens-soccer-vs-university-of-wisconsin-superior",
+   "image": false,
+   "all_day": false,
+   "start_date": "2026-10-13 15:30:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "13",
+    "hour": "15",
+    "minutes": "30",
+    "seconds": "00"
+   },
+   "end_date": "2026-10-13 17:30:00",
+   "end_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "13",
+    "hour": "17",
+    "minutes": "30",
+    "seconds": "00"
+   },
+   "utc_start_date": "2026-10-13 20:30:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "13",
+    "hour": "20",
+    "minutes": "30",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-10-13 22:30:00",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "13",
+    "hour": "22",
+    "minutes": "30",
+    "seconds": "00"
+   },
+   "timezone": "America/Chicago",
+   "timezone_abbr": "CDT",
+   "cost": "",
+   "cost_details": {
+    "currency_symbol": "",
+    "currency_code": "",
+    "currency_position": "",
+    "values": []
+   },
+   "website": "https://athletics.stolaf.edu/calendar.aspx?game_id=21102&amp;sport_id=10",
+   "show_map": false,
+   "show_map_link": false,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [
+    {
+     "name": "Athletics",
+     "slug": "athletics",
+     "term_group": 0,
+     "term_taxonomy_id": 3,
+     "taxonomy": "tribe_events_cat",
+     "description": "",
+     "parent": 0,
+     "count": 767,
+     "filter": "raw",
+     "id": 3,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories/3",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories"
+     }
+    }
+   ],
+   "tags": [],
+   "venue": {
+    "id": 31523,
+    "author": "1",
+    "status": "publish",
+    "date": "2019-09-25 14:18:11",
+    "date_utc": "2019-09-25 19:18:11",
+    "modified": "2022-09-21 13:50:37",
+    "modified_utc": "2022-09-21 18:50:37",
+    "url": "https://wp.stolaf.edu/calendar/venue/northfield-minn-rolf-mellby-field/",
+    "venue": "Northfield, Minn., Rolf Mellby Field",
+    "description": "<div data-modular-content-collection></div>",
+    "slug": "northfield-minn-rolf-mellby-field",
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "wp.stolaf.edu/calendar?id=31523",
+    "global_id_lineage": [
+     "wp.stolaf.edu/calendar?id=31523"
+    ]
+   },
+   "organizer": [],
+   "custom_fields": [],
+   "is_virtual": false,
+   "virtual_url": null,
+   "virtual_video_source": ""
+  },
+  {
+   "id": 114587,
+   "global_id": "wp.stolaf.edu/calendar?id=114587",
+   "global_id_lineage": [
+    "wp.stolaf.edu/calendar?id=114587"
+   ],
+   "author": "12763",
+   "status": "publish",
+   "date": "2026-05-07 10:22:50",
+   "date_utc": "2026-05-07 15:22:50",
+   "modified": "2026-05-07 10:22:50",
+   "modified_utc": "2026-05-07 15:22:50",
+   "url": "https://wp.stolaf.edu/calendar/event/admissions-fall-visit-days-2/",
+   "rest_url": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events/114587",
+   "title": "Admissions: Fall Visit Days",
+   "description": "<div data-modular-content-collection><p>Students interested in attending St. Olaf are encouraged to attend St. Olaf’s Fall Visit Days, October 14-16, 2025. Fall Visit Days will consist of tours and programming that will help showcase the St. Olaf experience.</p>\n</div>",
+   "excerpt": "",
+   "slug": "admissions-fall-visit-days-2",
+   "image": false,
+   "all_day": true,
+   "start_date": "2026-10-14 00:00:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "14",
+    "hour": "00",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "end_date": "2026-10-16 23:59:59",
+   "end_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "16",
+    "hour": "23",
+    "minutes": "59",
+    "seconds": "59"
+   },
+   "utc_start_date": "2026-10-14 05:00:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "14",
+    "hour": "05",
+    "minutes": "00",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-10-17 04:59:59",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "17",
+    "hour": "04",
+    "minutes": "59",
+    "seconds": "59"
+   },
+   "timezone": "America/Chicago",
+   "timezone_abbr": "CDT",
+   "cost": "",
+   "cost_details": {
+    "currency_symbol": "$",
+    "currency_code": "USD",
+    "currency_position": "prefix",
+    "values": []
+   },
+   "website": "https://wp.stolaf.edu/admissions/",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [
+    {
+     "name": "Academic Year",
+     "slug": "academic-year",
+     "term_group": 0,
+     "term_taxonomy_id": 29,
+     "taxonomy": "tribe_events_cat",
+     "description": "",
+     "parent": 0,
+     "count": 179,
+     "filter": "raw",
+     "id": 29,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories/29",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories"
+     }
+    }
+   ],
+   "tags": [],
+   "venue": {
+    "id": 493,
+    "author": "1",
+    "status": "publish",
+    "date": "2017-09-21 16:38:29",
+    "date_utc": "2017-09-21 21:38:29",
+    "modified": "2025-05-22 09:44:34",
+    "modified_utc": "2025-05-22 14:44:34",
+    "url": "https://wp.stolaf.edu/calendar/venue/buntrock-commons/",
+    "venue": "Buntrock Commons",
+    "description": "<div data-modular-content-collection></div>",
+    "slug": "buntrock-commons",
+    "address": "1521 St Olaf Ave",
+    "city": "Northfield",
+    "country": "United States",
+    "state": "MN",
+    "geo_lat": 44.468533,
+    "geo_lng": -93.162848,
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "wp.stolaf.edu/calendar?id=493",
+    "global_id_lineage": [
+     "wp.stolaf.edu/calendar?id=493"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 49081,
+     "author": "4978",
+     "status": "publish",
+     "date": "2021-08-02 10:48:38",
+     "date_utc": "2021-08-02 15:48:38",
+     "modified": "2021-08-02 10:48:38",
+     "modified_utc": "2021-08-02 15:48:38",
+     "url": "https://wp.stolaf.edu/calendar/organizer/office-of-admissions/",
+     "organizer": "Office of Admissions",
+     "description": "<div data-modular-content-collection></div>",
+     "slug": "office-of-admissions",
+     "phone": "1-800-800-3025",
+     "website": "https://admissions.stolaf.edu/",
+     "email": "admissions@stolaf.edu",
+     "global_id": "wp.stolaf.edu/calendar?id=49081",
+     "global_id_lineage": [
+      "wp.stolaf.edu/calendar?id=49081"
+     ]
+    }
+   ],
+   "custom_fields": [],
+   "is_virtual": false,
+   "virtual_url": null,
+   "virtual_video_source": ""
+  },
+  {
+   "id": 115523,
+   "global_id": "wp.stolaf.edu/calendar?id=115523",
+   "global_id_lineage": [
+    "wp.stolaf.edu/calendar?id=115523"
+   ],
+   "author": "5187",
+   "status": "publish",
+   "date": "2026-07-28 15:50:08",
+   "date_utc": "2026-07-28 20:50:08",
+   "modified": "2026-10-09 10:25:16",
+   "modified_utc": "2026-10-09 15:25:16",
+   "url": "https://wp.stolaf.edu/calendar/event/student-recital-3/",
+   "rest_url": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events/115523",
+   "title": "Student Recital",
+   "description": "<div data-modular-content-collection><p><span style=\"font-weight: 400\">Faculty, staff, students, and the wider community are welcome to attend this Music Department recital, featuring a variety of students fulfilling their degree requirements.</span></p>\n<p><span style=\"font-weight: 400\">This event is free and open to the public.</span></p>\n</div>",
+   "excerpt": "",
+   "slug": "student-recital-3",
+   "image": false,
+   "all_day": false,
+   "start_date": "2026-10-15 20:15:00",
+   "start_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "15",
+    "hour": "20",
+    "minutes": "15",
+    "seconds": "00"
+   },
+   "end_date": "2026-10-15 21:15:00",
+   "end_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "15",
+    "hour": "21",
+    "minutes": "15",
+    "seconds": "00"
+   },
+   "utc_start_date": "2026-10-16 01:15:00",
+   "utc_start_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "16",
+    "hour": "01",
+    "minutes": "15",
+    "seconds": "00"
+   },
+   "utc_end_date": "2026-10-16 02:15:00",
+   "utc_end_date_details": {
+    "year": "2026",
+    "month": "10",
+    "day": "16",
+    "hour": "02",
+    "minutes": "15",
+    "seconds": "00"
+   },
+   "timezone": "America/Chicago",
+   "timezone_abbr": "CDT",
+   "cost": "Free",
+   "cost_details": {
+    "currency_symbol": "$",
+    "currency_code": "USD",
+    "currency_position": "prefix",
+    "values": [
+     "free"
+    ]
+   },
+   "website": "https://wp.stolaf.edu/music/",
+   "show_map": true,
+   "show_map_link": true,
+   "hide_from_listings": false,
+   "sticky": false,
+   "featured": false,
+   "categories": [
+    {
+     "name": "Music",
+     "slug": "music",
+     "term_group": 0,
+     "term_taxonomy_id": 54,
+     "taxonomy": "tribe_events_cat",
+     "description": "",
+     "parent": 0,
+     "count": 307,
+     "filter": "raw",
+     "id": 54,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories/54",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories"
+     }
+    },
+    {
+     "name": "Performing and Visual Arts",
+     "slug": "performing-and-visual-arts",
+     "term_group": 0,
+     "term_taxonomy_id": 19,
+     "taxonomy": "tribe_events_cat",
+     "description": "",
+     "parent": 0,
+     "count": 230,
+     "filter": "raw",
+     "id": 19,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories/19",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/categories"
+     }
+    }
+   ],
+   "tags": [
+    {
+     "name": "Music",
+     "slug": "music",
+     "term_group": 0,
+     "term_taxonomy_id": 135,
+     "taxonomy": "post_tag",
+     "description": "",
+     "parent": 0,
+     "count": 118,
+     "filter": "raw",
+     "id": 135,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/tags/135",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/tags"
+     }
+    },
+    {
+     "name": "Recital",
+     "slug": "recital",
+     "term_group": 0,
+     "term_taxonomy_id": 57,
+     "taxonomy": "post_tag",
+     "description": "",
+     "parent": 0,
+     "count": 148,
+     "filter": "raw",
+     "id": 57,
+     "urls": {
+      "self": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/tags/57",
+      "collection": "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/tags"
+     }
+    }
+   ],
+   "venue": {
+    "id": 240,
+    "status": "publish",
+    "date": "2017-09-18 11:39:43",
+    "date_utc": "2017-09-18 16:39:43",
+    "modified": "2017-10-18 12:16:44",
+    "modified_utc": "2017-10-18 17:16:44",
+    "url": "https://wp.stolaf.edu/calendar/venue/christiansen-hall-of-music-100-urness-recital-hall/",
+    "venue": "Christiansen Hall of Music 100 Urness Recital Hall",
+    "description": "<div data-modular-content-collection></div>",
+    "slug": "christiansen-hall-of-music-100-urness-recital-hall",
+    "geo_lat": 44.4582983,
+    "geo_lng": -93.161604,
+    "show_map": true,
+    "show_map_link": true,
+    "global_id": "wp.stolaf.edu/calendar?id=240",
+    "global_id_lineage": [
+     "wp.stolaf.edu/calendar?id=240"
+    ]
+   },
+   "organizer": [
+    {
+     "id": 10973,
+     "author": "176",
+     "status": "publish",
+     "date": "2017-12-05 12:02:40",
+     "date_utc": "2017-12-05 18:02:40",
+     "modified": "2026-08-31 09:32:44",
+     "modified_utc": "2026-08-31 14:32:44",
+     "url": "https://wp.stolaf.edu/calendar/organizer/music-department/",
+     "organizer": "Music Department",
+     "description": "<div data-modular-content-collection></div>",
+     "slug": "music-department",
+     "phone": "(507) 786-3568",
+     "website": "https://wp.stolaf.edu/music/",
+     "email": "wessel5@stolaf.edu",
+     "global_id": "wp.stolaf.edu/calendar?id=10973",
+     "global_id_lineage": [
+      "wp.stolaf.edu/calendar?id=10973"
+     ]
+    },
+    {
+     "id": 115276,
+     "author": "5187",
+     "status": "publish",
+     "date": "2026-07-09 14:16:18",
+     "date_utc": "0000-00-00 00:00:00",
+     "modified": "2026-07-09 14:16:18",
+     "modified_utc": "0000-00-00 00:00:00",
+     "url": "https://wp.stolaf.edu/calendar/organizer/taylor-wesseln/",
+     "organizer": "Taylor Wesseln",
+     "description": "<div data-modular-content-collection></div>",
+     "slug": "taylor-wesseln",
+     "phone": "507-786-3568",
+     "website": "https://wp.stolaf.edu/music/full-department-listing/",
+     "email": "wessel5@stolaf.edu",
+     "global_id": "wp.stolaf.edu/calendar?id=115276",
+     "global_id_lineage": [
+      "wp.stolaf.edu/calendar?id=115276"
+     ]
+    }
+   ],
+   "custom_fields": [],
+   "is_virtual": false,
+   "virtual_url": null,
+   "virtual_video_source": ""
+  }
+ ]
+}

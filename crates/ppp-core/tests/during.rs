@@ -7,7 +7,7 @@ fn kept(rows: &str, from: &str, until: &str) -> String {
     let mut engine = Engine::new();
     engine
         .eval(
-            &format!("use pipes *; {rows} | during {from} {until} | get name | to nuon"),
+            &format!("use ppp *; {rows} | during {from} {until} | get name | to nuon"),
             Value::test_nothing(),
         )
         .unwrap()

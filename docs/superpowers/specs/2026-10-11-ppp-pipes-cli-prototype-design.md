@@ -34,7 +34,7 @@ This spec covers the first build of ppp-pipes: a Rust core that runs nushell pip
 | chrono | Only at two boundaries: nushell's `Value::Date`, and the `rrule` crate | Both are forced on us; a jiff RRULE expander would be a project of its own |
 | Recurrence | Wrap the `rrule` crate (0.14) in one module | Mature, pure Rust; its chrono types do not leak out |
 | Time formatting | Driven by the schema, at the boundary (§5.3) | About 25 record types are planned, and the schema already says which fields are dates, local times or instants |
-| Command names | `into event`, `expand rrule`, `from ics`, … with no `pipes-` prefix | Nushell modules already namespace (`use pipes` gives `pipes into event`); a test catches clashes with built-ins |
+| Command names | `into event`, `expand rrule`, `from ics`, … with no `pipes-` prefix | Nushell modules already namespace (`use ppp` gives `ppp into event`); a test catches clashes with built-ins |
 | URL handling | Nushell's own `url parse --base` and `url join` | Already resolves relative URLs and builds queries |
 | Stock `nu` support | A plugin, `nu_plugin_pipes`, that links the core | Each command has one implementation and two thin wrappers (§4.3) |
 
@@ -60,7 +60,7 @@ crates/
 stdlib/
   common.schema.json
   calendar.schema.json
-  pipes/mod.nu                 the `pipes` nushell module (§6)
+  ppp/mod.nu                   the `ppp` nushell module (§6)
 pipes/                         acceptance pipes (§7)
 fixtures/
   ics/                         KDL examples as .ics, saved live feeds, edge cases
@@ -71,7 +71,7 @@ kdl-calendar-schema/           reference: field set and examples
 nushell-ics/ics.nu             reference: the parser `from ics` ports
 ```
 
-`stdlib/` is the single copy of the schemas and the `pipes` module. The binaries embed it with `include_str!`. Stock `nu` users add `stdlib/` to `NU_LIB_DIRS`.
+`stdlib/` is the single copy of the schemas and the `ppp` module. The binaries embed it with `include_str!`. Stock `nu` users add `stdlib/` to `NU_LIB_DIRS`.
 
 The workspace pins nushell crates to 0.116.1. The plugin protocol requires the plugin and `nu` to match, so upgrading nushell means rebuilding both.
 
@@ -81,7 +81,7 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
 
 ### 4.1 `ppp-core`
 
-- **`engine`** builds a nushell `EngineState` from a hand-picked command list: `nu-cmd-lang`, a chosen subset of `nu-command`, and our commands. It leaves out external commands (`^cmd`, `run-external`), all filesystem commands (`open`, `ls`, `save`, `rm`, …), `cd` and plugins. The engine itself still reads pipe files and `stdlib/` when it resolves `use`. Our `http get` replaces the built-in one. The embedded `stdlib/` is on the module path, so `use pipes *` works. `$env.PWD` is `/`, because some commands (`http get` among them) need a working directory and pipes have no filesystem to work in. The engine installs nushell's default rustls crypto provider so `http get` can use TLS. `nu-command` is built with its `os` feature: other nushell crates turn on `nu-protocol`'s `os` feature, and `nu-command` does not compile unless its own matches.
+- **`engine`** builds a nushell `EngineState` from a hand-picked command list: `nu-cmd-lang`, a chosen subset of `nu-command`, and our commands. It leaves out external commands (`^cmd`, `run-external`), all filesystem commands (`open`, `ls`, `save`, `rm`, …), `cd` and plugins. The engine itself still reads pipe files and `stdlib/` when it resolves `use`. Our `http get` replaces the built-in one. The embedded `stdlib/` is on the module path, so `use ppp *` works. `$env.PWD` is `/`, because some commands (`http get` among them) need a working directory and pipes have no filesystem to work in. The engine installs nushell's default rustls crypto provider so `http get` can use TLS. `nu-command` is built with its `os` feature: other nushell crates turn on `nu-protocol`'s `os` feature, and `nu-command` does not compile unless its own matches.
 - **`pipe`** loads a `.nu` file with `use`, which evaluates its consts without running `main`. It then reads a `PipeInfo`:
 
   | Field | Source |
@@ -94,7 +94,8 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
   It runs `main` with typed arguments and returns the list of records.
 - **`schema`** holds a registry of the embedded schemas, keyed by `$id`. For each record type (each `$def` with an `$anchor`) it compiles a `jsonschema` validator (2020-12, format assertion on) and a **time-field map** (§5.3). An unknown `$id` is an error. Nothing is fetched.
 - **`serialize`** turns a nushell record into JSON, formatting time fields according to the map.
-- **`cache`** stores HTTP responses on disk, keyed by URL. It obeys the pipe's `refresh` and the response's `Cache-Control` and `ETag`. The CLI puts it in the user cache directory (`directories` crate). Embedders pass their own path.
+- **`cache`** stores HTTP responses on disk, as a body file and a JSON metadata file named by the SHA-256 of the URL. A response is fresh for the pipe's `refresh` if it has one, else for the response's `Cache-Control: max-age`, else not at all; a stale one is revalidated with `ETag`/`Last-Modified`. The CLI puts it in `<user cache dir>/ppp-pipes/http` (`dirs` crate). Embedders pass their own path, or none.
+- **`host`** holds what every engine of one run shares: the cache directory, the pipes directory `pipe get` reads, the limits, the flag a timeout sets, the stack of running pipes, and warnings for the caller to show.
 - **`time`** holds jiff helpers and the only chrono ↔ jiff conversions.
 - **`recur`** is the only module that touches the `rrule` crate.
 
@@ -105,8 +106,10 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
 | `from ics [--tz]` | string → table | §5.2 |
 | `expand rrule --from <dt> --until <dt>` | table → table | §5.4 |
 | `html to-text` | string → string | Strips tags and decodes entities (`&amp;`, `&#8211;`); crate chosen in the plan |
-| `http get` | → any | Replaces the built-in: cache, size cap, run log |
+| `http get <url> [--raw]` | → any | Replaces the built-in: http(s) only, through the cache, with the size cap. JSON (by `Content-Type`) is parsed unless `--raw`; other bodies are text when UTF-8, else binary |
 | `pipe get <name> [args]` | → table | §5.5 |
+| `pipe warn <message>` | any → any | Reports a warning (stderr under `ppp run`) and passes its input on |
+| `query html` | string → any | CSS selector queries, with the same flags and results as nushell's `query web`. Adapted from `nu_plugin_query` (MIT) rather than depending on it, because that crate's `webpage` dependency links libcurl and OpenSSL. `--inspect` output goes where warnings go |
 | `validate` | table → table | Returns its input unchanged, or fails with index and pointer |
 | `to pipes-json` | table → string | Canonical JSON, with time fields formatted by the schema |
 
@@ -119,17 +122,19 @@ Each command is a plain function: typed arguments and a `Value` in, a `Value` or
 
 `nu_plugin_formats` has only the second kind, which is why we cannot link it into our own binary.
 
+The function returns a small `CommandError` (title and message), which each wrapper turns into its own error type: a `ShellError` in the engine, a `LabeledError` in the plugin. The plugin's wrappers borrow name, signature and description from the engine's command, so the two can't drift apart.
+
 ### 4.4 `ppp-cli`
 
 ```
-ppp run <pipe> [--pipes-dir DIR] [--timeout SECS] [pipe flags…]
+ppp run [--pipes-dir DIR] [--cache-dir DIR | --no-cache] [--timeout SECS] <pipe> [pipe flags…]
 ppp info <pipe> [--pipes-dir DIR]
 ppp validate <file.json | file.jsonl>
 ```
 
 - `<pipe>` is a name, looked up as `<pipes-dir>/<name>.nu` (default `./pipes`), or a path.
 - `run` passes any remaining arguments to `main` exactly as `nu <pipe>.nu <args>` would: each is quoted as needed (`nu_parser::escape_for_script_arg`) and nushell's parser checks them against `main`'s signature, so every flag type works and errors are nushell's own (unknown flag, type mismatch, missing value). Embedders don't go through this; they pass typed values. `ppp run`'s own options (`--pipes-dir`) go before the pipe name, since everything after it belongs to the pipe.
-- `info` prints the `PipeInfo`. This is the metadata a UI will later turn into a form.
+- `info` prints the `PipeInfo` as JSON: name, title, description, category, search terms, examples, flags (name, type, description, default), output types and refresh (ISO 8601). It doesn't run the pipe. This is the metadata a UI will later turn into a form.
 - `validate` checks a JSON array or JSONL file against the stdlib.
 
 ### 4.5 `nu_plugin_pipes`
@@ -138,14 +143,18 @@ A standard nushell plugin that offers every command in §4.2. In stock `nu`:
 
 ```nu
 plugin add ~/.cargo/bin/nu_plugin_pipes; plugin use pipes
-use pipes *
+use ppp *
 http get $url | from ics | expand rrule --from (date now) --until ((date now) + 1wk) | into event | validate
-pipe get campus-week {days: 3}
+pipe get campus-week {within: 3day}
 ```
 
 Pipe files run unchanged: `use pipes/campus-week.nu; campus-week --within 3day`.
 
-Outside the runner there is no sandbox, and `http get` is nushell's own, without our cache. `pipe get` is the exception: it runs the full sandboxed engine inside the plugin process, with the cache and validation.
+Outside the runner there is no sandbox, and `http get` is nushell's own, without our cache. `pipe get` is the exception: it runs the full sandboxed engine inside the plugin process, with the cache (in the user cache directory), validation and a 60-second limit. In the plugin it takes `--pipes-dir`, relative to nushell's current directory (default `./pipes`).
+
+The plugin is built against nushell 0.116.1 and loads only into that version.
+
+The library module is called `ppp`, not `pipes`, because nushell's `use` looks for a directory of that name in the current directory before `NU_LIB_DIRS`, and `pipes/` is where pipe files conventionally live.
 
 ---
 
@@ -200,29 +209,33 @@ Inside a pipe, times are nushell `datetime` values, so `where start < (date now)
 
 ### 5.4 `expand rrule`
 
+`expand rrule` works on `from ics` rows, before `into event`.
+
 - `--from` and `--until` are required, because rules can run forever.
-- Rows without `rrule` or `rdates` pass through unchanged.
-- Each master row becomes one row per occurrence that starts in `[from, until)`:
-  - `id` is `<uid>_<start as UTC basic format>`, e.g. `abc_20261013T170000Z`. That is the form Google Calendar uses, so expanded feeds and Google's pre-expanded feeds (Carleton) produce the same ids.
-  - `series` is the master's `uid`.
-  - `end` keeps the master's length.
-  - `rrule`, `rdates` and `exdates` are removed.
-- An override row (one with `recurrence_id`) replaces the matching occurrence. An override that moves an occurrence into the window counts even if the original date lies outside it.
-- Expansion runs in wall time in the event's `tz`, so an 18:00 event stays at 18:00 across DST. Floating events stay floating, and all-day events stay all-day.
-- It fails after 10,000 occurrences in one series.
-- It only expands. To filter by window, use `where`.
+- Rows without `rrule` or `rdates` pass through unchanged. That includes override rows (those with `recurrence_id`).
+- Each master row becomes one row per occurrence that overlaps `[from, until)`, the same rule `during` uses, so an occurrence already under way counts. An occurrence with no `end` is a moment and must start inside the window. Each occurrence row:
+  - has `start` at the occurrence and `end` at the same length after it;
+  - has `recurrence_id` set to its original start, so `into event` gives it the id `<uid>_<start as UTC basic format>` (e.g. `abc_20261013T170000Z`) and `series: <uid>`. That is the form Google Calendar uses, so expanded feeds and Google's pre-expanded feeds (Carleton) produce the same ids;
+  - has no `rrule`, `rdates` or `exdates`.
+- DTSTART always counts as an occurrence, even when the rule would skip it (RFC 5545 §3.8.5.3).
+- An occurrence that has an override row in the input (same `uid`, `recurrence_id` equal to the occurrence's start) is left out, since the override row stands in for it. An override that moves an occurrence into or out of the window is handled by whatever filters the rows afterwards, usually `during`.
+- Expansion runs in wall time in the row's `tz` (UTC when it has none), so an 18:00 event stays at 18:00 across DST. A wall time that falls in a spring-forward gap moves later by the gap, as RFC 5545 says. All-day events stay all-day.
+- `UNTIL` without a `Z` (a DATE for all-day series, a floating time for floating ones, as RFC 5545 requires) is read in the series' zone; a DATE `UNTIL` covers its whole day. An `UNTIL` before `DTSTART` leaves just DTSTART.
+- An all-day occurrence lasts the same number of calendar days as its master, even across a DST change.
+- It fails after 10,000 occurrences of one series inside the window. Occurrences before the window don't count, so a long-running series is fine.
+- It only expands. To filter by window, use `during`.
 
 If a pipe skips `expand rrule`, the master keeps its `rrule`, and `into event` gives each override row the same `<uid>_<instant>` id and `series`. Ids match either way.
 
 ### 5.5 `pipe get`
 
-`pipe get <name> [args]` runs another pipe through steps 1–4 of §5.1 and returns its records as nushell values, with datetimes intact. `args` is a record of the other pipe's parameters, e.g. `{days: 3}`.
+`pipe get <name> [args]` runs another pipe through steps 1–4 of §5.1, in its own engine sharing the run's host (cache, timeout, warnings), and returns its records as nushell values, with datetimes intact. `args` is a record of the other pipe's flags, e.g. `{within: 3day}`. If the other pipe's records fail the check, `pipe get` fails and shows the first five failures.
 
 A run-wide stack of pipe names catches cycles. The error shows the chain: `all-campus → campus-week → all-campus`.
 
 ---
 
-## 6. Schemas and the `pipes` module
+## 6. Schemas and the `ppp` module
 
 ### 6.1 Schemas
 
@@ -242,7 +255,7 @@ It drops the KDL schema's `color`. Records are closed (`unevaluatedProperties: f
 
 Turning a source into events happens in three layers, each with one job:
 
-1. **Format readers** turn a vendor format into one shared intermediate table: the `from ics` columns plus `description_html`, `image`, `cost`, `organizers`, `venue` and `links`.
+1. **Format readers** turn a vendor format into one shared intermediate table: the `from ics` columns plus optional `description_html`, `excerpt`, `place` (a stdlib place), `organizers` (stdlib agents), `images`, `links`, `cost`, `keywords`, `online`, `attendance`, `featured`, `hidden` and `extra`.
    - `from ics` (Rust)
    - `from tribe-events` (nu): The Events Calendar's WordPress REST API, used by many WordPress sites
    - `from presence` (nu): Presence's events API, used by many campuses
@@ -255,6 +268,7 @@ Turning a source into events happens in three layers, each with one job:
    - turns `description_html` into `content: {type: html}` plus a plain-text `description` (via `html to-text`);
    - runs `html to-text` on short text fields (`summary`, `location.name`);
    - gives override rows their `<uid>_<instant>` id and `series`;
+   - percent-encodes non-ASCII characters in every URL (`url`, `links`, `images`, `online`), as the schema's `uri` format requires;
    - moves leftover columns to `extra`; for `from ics` rows, each unmapped property is kept under its lower-cased name, as a list when it repeats (e.g. several `ATTENDEE`s);
    - drops empty values (`drop-empty`).
 3. **The pipe file** fixes one site's quirks, such as Northfield's relative URLs or Carleton's HTML in a TEXT field.
@@ -263,64 +277,22 @@ The rule: if a second source would hit a problem, the fix goes in layer 1 or 2. 
 
 `during <from> <until>` keeps rows whose `start`–`end` span overlaps the window, so events already under way are kept; a row with no `end` is a moment at `start`. Pipes use it for "what's on this week" windows.
 
-`drop-empty` removes `null`, `""`, `[]` and `{}`. This covers Tribe's `venue: []` and `image: false`, which `from tribe-events` turns into `null` first.
+`drop-empty` removes `null`, `""`, `[]` and `{}`. `from tribe-events` treats Tribe's `venue: []` and `image: false` as absent, reads times from its `utc_*` fields (a bare local time would be read in the machine's zone), turns all-day `23:59:59` ends into exclusive next-day ends, and maps country names to ISO codes (US, CA) or drops them.
 
 ---
 
 ## 7. Acceptance pipes
 
-Each lives in `pipes/` and declares `output: ["https://pipes.frogpond.tech/stdlib/calendar/1#event"]`.
+Each lives in `pipes/`, declares `output: ["https://pipes.frogpond.tech/stdlib/calendar/1#event"]`, and takes `--within <duration>` and `--from <datetime>` (default: now) for its window. Those reading one source also take `--source <url>`, defaulting to the live URL, so tests can point them at a local server.
 
 | Pipe | Source | What it proves |
 |---|---|---|
-| `campus-week` | St. Olaf ICS (`stolaf.edu/apps/calendar/ical.cfm`): 200 events, mostly `TZID=America/Chicago`, 14 all-day | TZID times, all-day dates, `GEO`, `CATEGORIES` |
-| `carleton-week` | Carleton ICS: 2,392 events, 3.2 MB | Floating times plus `X-WR-TIMEZONE`; HTML in `DESCRIPTION`; Google's pre-expanded recurrences out to 2099; the same event under several UIDs; parsing 3 MB quickly |
-| `northfield` | Northfield ICS (`catID=41`): 8 events | VTIMEZONE with nested RRULEs; `DTSTAMP` with a TZID; HTML and trailing junk in `LOCATION`; a relative `URL` |
-| `stolaf-wp` | Tribe API (`wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events`): 632 events over 13 pages | Paging; venues; cost; organizers; images; virtual events |
-| `presence` | `api.presence.io/stolaf/v1/events`: 440 events | UTC instants with no `tz`; organizer as person plus org; image URLs |
-| `all-campus` | `pipe get` on the others | Composition; deduplication on `summary` + `start` |
-
-**`campus-week`** becomes:
-
-```nu
-http get "https://www.stolaf.edu/apps/calendar/ical.cfm"
-| from ics
-| expand rrule --from (date now) --until ((date now) + ($days * 1day))
-| where start < ((date now) + ($days * 1day))
-| into event
-```
-
-**`stolaf-wp`** asks the API for a date window and follows `next_rest_url` with `generate`. Running past `--max-pages` is an error, because a partial calendar that looks complete is worse than a failed run:
-
-```nu
-export def main [
-    --days: int = 7        # How far ahead to look
-    --max-pages: int = 20  # Safety cap on requests
-]: nothing -> table {
-    let first = "https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events"
-        | url parse
-        | merge {params: {
-            per_page: 50
-            start_date: (date now | format date "%Y-%m-%d")
-            end_date: ((date now) + ($days * 1day) | format date "%Y-%m-%d 23:59:59")
-        }}
-        | url join
-    let pages = generate {|url|
-        let page = http get $url
-        if $page.next_rest_url? == null { {out: $page} } else { {out: $page, next: $page.next_rest_url} }
-    } $first
-    | take ($max_pages + 1)
-    | collect
-    if ($pages | length) > $max_pages { error make {msg: $"more than ($max_pages) pages; raise --max-pages"} }
-    $pages | get events | flatten | from tribe-events | into event
-}
-```
-
-(`url join` refuses a record that has both `query` and `params`. Pipes that start from a URL with a query string must `reject query` before merging `params`.)
-
-**`presence`** builds `url` as `https://stolaf.presence.io/event/<uri>` and `image.url` as `https://stolaf-cdn.presence.io/event-photos/09ddef77-5009-4348-8540-c9bfc6ade6bc/<photoUriWithVersion>`. Both were checked against live responses. We have not confirmed what the UUID in the photo path identifies; `from presence` takes the photo base as a parameter so other campuses can supply their own.
-
----
+| `campus-week` | St. Olaf ICS | TZID times, all-day dates, `GEO`, `CATEGORIES`, `expand rrule`, `during` |
+| `carleton-week` | Carleton ICS (2,392 events, 3.2 MB) plus the calendar's HTML page (`--page`) | Floating times plus `X-WR-TIMEZONE`; HTML in `DESCRIPTION` (renamed to `description_html`); HTML-escaped URLs; the same event under several UIDs (`uniq-by summary start`); pictures, which only the page has, joined on the event code (`/_c/<code>` at the end of the description, `?eId=<code>` on the page) with `query html`. If the page fails, the events come without pictures and a `pipe warn` |
+| `northfield` | Northfield ICS (`catID=41`) | VTIMEZONE with nested RRULEs; `DTSTAMP` with a TZID; HTML and a trailing ` -` in `LOCATION`; a `URL` that points back at the feed (the event page is taken from the description instead) |
+| `stolaf-wp` | Tribe API | Paging through `next_rest_url`, failing past `--max-pages` rather than returning part of the calendar; date filters sent in the calendar's zone; venues, cost, organizers |
+| `presence` | Presence API | UTC instants with no `tz`; organizer as org plus contact person; cover photos (`--photos`) |
+| `all-campus` | `pipe get` on the others | Composition; deduplication on `summary` + `start`; sorted by start. A source that fails is left out with a `pipe warn` (stderr under `ppp run`), and the rest still come through |
 
 ## 8. Errors and limits
 
@@ -354,7 +326,7 @@ Unit and integration tests run on saved copies of real feeds. Nothing is mocked.
 - **`expand rrule`**: RRULE with EXDATE and RDATE; RECURRENCE-ID overrides, including one moved into the window; a weekly event across both DST changes; a time in the spring-forward gap and in the fall-back hour; floating and all-day masters; the 10,000 cap.
 - **`serialize`**: each of the three time formats; the `when` rule; a time-field map built from every stdlib type; the walker's error on an unsupported keyword.
 - **Schemas**: every `fixtures/examples/*.json` passes. Every `fixtures/invalid/*.json` fails at its expected JSON Pointer. These are written fresh, one mistake per file, because `invalid/broken.kdl` from the KDL project is missing.
-- **`pipes` module**: `from tribe-events`, `from presence` and `into event` run in the embedded engine on saved API responses.
+- **`ppp` module**: `from tribe-events`, `from presence` and `into event` run in the embedded engine on saved API responses.
 - **Both wrappers**: each Rust command runs through its in-process `Command` and through `nu-plugin-test-support`, with the same inputs and expected outputs.
 - **Sandbox**: `^ls`, `run-external`, `save`, `cd` and `rm` are not registered.
 - **Names**: none of our commands shadows a nushell built-in.
@@ -366,7 +338,7 @@ Unit and integration tests run on saved copies of real feeds. Nothing is mocked.
 ## 10. Build order
 
 1. Workspace; `common` and `calendar` schemas; fixtures; schema registry, validator and `serialize`; `ppp validate`.
-2. Engine; `from ics`; `pipes` module with `into event`; `campus-week`; `ppp run`.
+2. Engine; `from ics`; `ppp` module with `into event`; `campus-week`; `ppp run`.
 3. `expand rrule`.
 4. HTTP cache; `ppp info`; `pipe get`; sandbox and limits.
 5. `html to-text`; `from tribe-events`; `from presence`; the other acceptance pipes; `all-campus`.

@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # The live sources change without us; check them once a day.
+  schedule:
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  # The plugin is built against this nushell and loads only into it.
+  NU_VERSION: 0.116.1
+
+jobs:
+  test:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [stable, nightly]
+    # Nightly is an early warning: new lints or compiler changes show up
+    # there first, but they don't block a merge.
+    continue-on-error: ${{ matrix.rust == 'nightly' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --workspace
+      - name: Install nu ${{ env.NU_VERSION }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$NU_VERSION" -R nushell/nushell \
+            -p "nu-$NU_VERSION-x86_64-unknown-linux-gnu.tar.gz" -O - \
+            | tar xz -C "$RUNNER_TEMP"
+          echo "PPP_TEST_NU=$RUNNER_TEMP/nu-$NU_VERSION-x86_64-unknown-linux-gnu/nu" >> "$GITHUB_ENV"
+      - name: Stock nu tests
+        run: cargo test -p nu_plugin_pipes --test stock_nu -- --ignored
+
+  live:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Live sources
+        run: cargo test -p ppp-cli --test run -- --ignored

@@ -17,11 +17,14 @@ const SOURCE = "https://www.stolaf.edu/apps/calendar/ical.cfm"
 @example "Next three days" { campus-week --within 3day }
 export def main [
     --within: duration = 1wk  # How far ahead to look
+    --from: datetime          # Start of the window (default: now)
 ]: nothing -> table {
-    use pipes *
-    let now = date now
+    use ppp *
+    let now = $from | default (date now)
+    let until = $now + $within
     http get --raw $SOURCE
     | from ics
-    | during $now ($now + $within)
+    | expand rrule --from $now --until $until
+    | during $now $until
     | into event --source $SOURCE
 }
