@@ -22,7 +22,7 @@ pub enum SerializeError {
     MissingTimeZone { pointer: String, form: &'static str },
     #[error("{pointer}: unknown time zone \"{tz}\"")]
     UnknownTimeZone { pointer: String, tz: String },
-    #[error("{pointer}: datetime is outside the years -9999 to 9999")]
+    #[error("{pointer}: datetime is outside {}", time::RANGE)]
     OutOfRange { pointer: String },
     #[error("{pointer}: durations must not be negative")]
     NegativeDuration { pointer: String },

@@ -232,6 +232,22 @@ fn datetimes_past_year_9999_are_an_error() {
             pointer: "/start".into()
         }
     );
+    assert_eq!(
+        err.to_string(),
+        "/start: datetime is outside -9999-01-02T01:59:59Z to 9999-12-30T22:00:00Z"
+    );
+}
+
+#[test]
+fn the_range_named_in_errors_is_jiffs() {
+    assert_eq!(
+        ppp_core::time::RANGE,
+        format!(
+            "{} to {}",
+            ppp_core::time::format_instant(jiff::Timestamp::MIN),
+            ppp_core::time::format_instant(jiff::Timestamp::MAX)
+        )
+    );
 }
 
 #[test]
