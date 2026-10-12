@@ -88,12 +88,10 @@ pub fn occurrences(
                 // DTSTART is the first occurrence (RFC 5545 §3.3.10). When
                 // the rule does not produce it, it still takes one of
                 // COUNT's places.
-                Some(count) if set.clone().all(1).dates.first() != Some(&dt_start) => {
-                    match count {
-                        0 | 1 => RRuleSet::new(dt_start),
-                        _ => rule.count(count - 1).build(dt_start).map_err(rule_error)?,
-                    }
-                }
+                Some(count) if set.clone().all(1).dates.first() != Some(&dt_start) => match count {
+                    0 | 1 => RRuleSet::new(dt_start),
+                    _ => rule.count(count - 1).build(dt_start).map_err(rule_error)?,
+                },
                 _ => set,
             }
         }
