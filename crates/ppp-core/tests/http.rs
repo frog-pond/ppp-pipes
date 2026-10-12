@@ -262,3 +262,36 @@ fn concurrent_writers_never_pair_a_body_with_the_wrong_metadata() {
         writer.join().unwrap();
     }
 }
+
+#[test]
+fn the_run_timeout_cuts_a_stuck_request_short() {
+    let url = support::serve_silence();
+    let host = Host::default();
+    let started = std::time::Instant::now();
+    let result = host.with_timeout(std::time::Duration::from_secs(1), || {
+        fetch(&host, &url, None)
+    });
+    assert!(
+        matches!(result, Err(FetchError::Network { .. })),
+        "{result:?}"
+    );
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(5),
+        "{:?}",
+        started.elapsed()
+    );
+}
+
+#[test]
+fn nothing_is_fetched_after_the_run_timed_out() {
+    let server = serve(vec![reply("200 OK", &[], "late")]);
+    let host = Host::default();
+    host.with_timeout(std::time::Duration::from_millis(10), || {
+        std::thread::sleep(std::time::Duration::from_millis(100))
+    });
+    assert!(matches!(
+        fetch(&host, &server.url, None),
+        Err(FetchError::Network { .. })
+    ));
+    assert!(server.requests.lock().unwrap().is_empty());
+}

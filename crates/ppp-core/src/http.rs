@@ -46,8 +46,19 @@ pub fn fetch(
         });
     }
 
+    if host.interrupted() {
+        return Err(FetchError::Network {
+            url: url.to_string(),
+            message: "the run's time limit has passed".into(),
+        });
+    }
+    // A request may not outlast the run's time limit.
+    let timeout = match host.time_left() {
+        Some(left) => left.min(host.config.http_timeout),
+        None => host.config.http_timeout,
+    };
     let agent: ureq::Agent = ureq::Agent::config_builder()
-        .timeout_global(Some(host.config.http_timeout))
+        .timeout_global(Some(timeout))
         .http_status_as_error(false)
         .user_agent("ppp-pipes")
         .build()

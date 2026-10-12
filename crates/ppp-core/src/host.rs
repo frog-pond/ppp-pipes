@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::schema::{Registry, SchemaError};
 
@@ -41,6 +41,7 @@ impl Default for HostConfig {
 pub struct Host {
     pub config: HostConfig,
     interrupt: Arc<AtomicBool>,
+    deadline: Mutex<Option<Instant>>,
     running: Mutex<Vec<String>>,
     warnings: Mutex<Vec<String>>,
     registry: OnceLock<Arc<Registry>>,
@@ -68,6 +69,7 @@ impl Host {
     /// `limit`. Nushell checks the flag between steps, so a stuck pipe
     /// stops with an "interrupted" error.
     pub fn with_timeout<T>(&self, limit: Duration, work: impl FnOnce() -> T) -> T {
+        *self.deadline.lock().expect("deadline lock") = Some(Instant::now() + limit);
         let (done, wait) = mpsc::channel::<()>();
         let flag = self.interrupt.clone();
         let watchdog = thread::spawn(move || {
@@ -79,6 +81,13 @@ impl Host {
         let _ = done.send(());
         let _ = watchdog.join();
         result
+    }
+
+    /// How long the run has left, if it has a time limit. Zero once the
+    /// limit has passed.
+    pub fn time_left(&self) -> Option<Duration> {
+        let deadline = *self.deadline.lock().expect("deadline lock");
+        deadline.map(|at| at.saturating_duration_since(Instant::now()))
     }
 
     /// The stdlib registry, compiled once per host.

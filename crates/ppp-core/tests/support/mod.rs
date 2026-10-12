@@ -74,3 +74,16 @@ pub fn temp_dir(name: &str) -> std::path::PathBuf {
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
+
+/// A server that accepts one connection and never answers.
+pub fn serve_silence() -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}/feed", listener.local_addr().unwrap());
+    thread::spawn(move || {
+        if let Ok((stream, _)) = listener.accept() {
+            thread::sleep(std::time::Duration::from_secs(60));
+            drop(stream);
+        }
+    });
+    url
+}
