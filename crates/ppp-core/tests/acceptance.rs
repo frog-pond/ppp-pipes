@@ -64,7 +64,10 @@ fn stolaf_wp_follows_pages() {
     let records = run("stolaf-wp", window(&first.url)).unwrap();
     assert_eq!(records.len(), 6);
     let request = &first.requests.lock().unwrap()[0];
-    assert!(request.contains("start_date=2026-08-31"), "{request}");
+    // Asks for events still running when the window opens (padded a day,
+    // since the API compares whole days), not just those starting in it.
+    assert!(request.contains("ends_after=2026-08-30"), "{request}");
+    assert!(request.contains("starts_before="), "{request}");
 }
 
 #[test]

@@ -21,11 +21,17 @@ export def main [
     use pipes *
     let start = $from | default (date now)
     let until = $start + $within
-    # The API reads its date filters in the calendar's own zone.
+    # The API reads its date filters in the calendar's own zone and compares
+    # whole days, so ask for a day more on each side; `during` trims the rest.
+    # `start_date`/`end_date` would miss events already under way.
     let local = {|at| $at | date to-timezone America/Chicago | format date "%Y-%m-%d %H:%M:%S" }
     let first = $source
         | url parse
-        | merge {params: {per_page: 50, start_date: (do $local $start), end_date: (do $local $until)}}
+        | merge {params: {
+            per_page: 50
+            ends_after: (do $local ($start - 1day))
+            starts_before: (do $local ($until + 1day))
+        }}
         | url join
     # Follow `next_rest_url`, but never past --max-pages: a partial calendar
     # that looks complete is worse than a failed run.
