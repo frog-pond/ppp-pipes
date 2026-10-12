@@ -81,7 +81,7 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
 
 ### 4.1 `ppp-core`
 
-- **`engine`** builds a nushell `EngineState` from a hand-picked command list: `nu-cmd-lang`, a chosen subset of `nu-command`, and our commands. It leaves out external commands (`^cmd`, `run-external`), all filesystem commands (`open`, `ls`, `save`, `rm`, …), `cd` and plugins. The engine itself still reads pipe files and `stdlib/` when it resolves `use`. Our `http get` replaces the built-in one. The embedded `stdlib/` is on the module path, so `use pipes *` works.
+- **`engine`** builds a nushell `EngineState` from a hand-picked command list: `nu-cmd-lang`, a chosen subset of `nu-command`, and our commands. It leaves out external commands (`^cmd`, `run-external`), all filesystem commands (`open`, `ls`, `save`, `rm`, …), `cd` and plugins. The engine itself still reads pipe files and `stdlib/` when it resolves `use`. Our `http get` replaces the built-in one. The embedded `stdlib/` is on the module path, so `use pipes *` works. `$env.PWD` is `/`, because some commands (`http get` among them) need a working directory and pipes have no filesystem to work in. The engine installs nushell's default rustls crypto provider so `http get` can use TLS. `nu-command` is built with its `os` feature: other nushell crates turn on `nu-protocol`'s `os` feature, and `nu-command` does not compile unless its own matches.
 - **`pipe`** loads a `.nu` file with `use`, which evaluates its consts without running `main`. It then reads a `PipeInfo`:
 
   | Field | Source |
@@ -128,7 +128,7 @@ ppp validate <file.json | file.jsonl>
 ```
 
 - `<pipe>` is a name, looked up as `<pipes-dir>/<name>.nu` (default `./pipes`), or a path.
-- `run` passes any remaining flags to `main`. An unknown flag or bad value is an error that lists the pipe's parameters.
+- `run` passes any remaining arguments to `main` as flags: `--flag value`, `--flag=value`, or a bare `--switch`. Values are typed by the flag's declared type (`string`, `int`, `float`, `number`, `bool`); other types can't be given on the command line yet. An unknown flag, a missing value or a bad value is an error that lists the pipe's flags. `ppp run`'s own options (`--pipes-dir`) go before the pipe name, since everything after it belongs to the pipe.
 - `info` prints the `PipeInfo`. This is the metadata a UI will later turn into a form.
 - `validate` checks a JSON array or JSONL file against the stdlib.
 
@@ -173,11 +173,13 @@ A port of `ics.nu`. It keeps the same columns (`summary`, `start`, `end`, `all_d
 
 It handles CRLF and LF line endings, folded lines, quoted parameters, TEXT escapes, comma-separated lists, `DURATION` in place of `DTEND`, and `VALUE=DATE`. It reads only VEVENTs. VTIMEZONE blocks and their nested RRULEs never become events.
 
-**Zone for each time**, in order: the property's `TZID`; then the calendar's `X-WR-TIMEZONE` or `TIMEZONE-ID`; then `--tz`. A `Z` time is UTC. A floating time with none of these is an **error** that says to pass `--tz`. Unlike `ics.nu`, it never falls back to the machine's local zone, because embedded hosts run wherever the server runs.
+**Zone for each time**, in order: the property's `TZID`; then the calendar's `X-WR-TIMEZONE`, `TIMEZONE-ID`, or the `TZID` of its only VTIMEZONE (St. Olaf's feed names its zone only that way); then `--tz`. A `TZID` that isn't an IANA zone name is an error. A `Z` time is UTC. A floating time with none of these is an **error** that says to pass `--tz`. Unlike `ics.nu`, it never falls back to the machine's local zone, because embedded hosts run wherever the server runs.
 
 All-day dates (`VALUE=DATE`) take the same zone when there is one. With no zone anywhere they are not an error: RFC 5545 dates have no zone, so `from ics` stores them as midnight UTC and gives the record no `tz`.
 
-Bad optional properties, such as Northfield's `DTSTAMP;TZID=…`, are kept in `props` and do not fail the parse.
+Bad optional properties, such as Northfield's `DTSTAMP;TZID=…` or an unreadable `CREATED`, are kept in `props` and do not fail the parse. A bad `DTSTART`, `DTEND`, `RDATE`, `EXDATE` or `RECURRENCE-ID` does.
+
+`URL` is a URI, which RFC 5545 doesn't escape, but Carleton's feed escapes it like TEXT (`&amp\;sport_id=`). `from ics` removes TEXT escapes from `URL`, since a URI never contains a backslash.
 
 ### 5.3 Time formatting
 
@@ -244,13 +246,16 @@ Turning a source into events happens in three layers, each with one job:
    - `from ics` (Rust)
    - `from tribe-events` (nu): The Events Calendar's WordPress REST API, used by many WordPress sites
    - `from presence` (nu): Presence's events API, used by many campuses
-2. **`into event [--tz]`** turns the intermediate table into `event` records. It does the cleanup every source needs:
+2. **`into event [--source] [--tz]`** turns the intermediate table into `event` records. `--source` sets each record's `source`; `--tz` fills in rows with no `tz`. It does the cleanup every source needs:
    - sets `type: "event"`;
    - renames columns (`uid` → `id`, `location` → `location.name`, `organizer` → `organizers[]`, …);
+   - makes an organizer a `person` when its `CUTYPE` is `INDIVIDUAL` and an `org` otherwise, including when `CUTYPE` is missing (campus calendars are mostly run by offices; RFC 5545's default is an individual);
+   - keeps only `http(s)` URLs as `url`, and `geo` only alongside a location name; anything else moves to `extra`;
+   - lower-cases `status` and keeps it only when it is `tentative`, `confirmed` or `cancelled`;
    - turns `description_html` into `content: {type: html}` plus a plain-text `description` (via `html to-text`);
    - runs `html to-text` on short text fields (`summary`, `location.name`);
    - gives override rows their `<uid>_<instant>` id and `series`;
-   - moves leftover columns to `extra`;
+   - moves leftover columns to `extra`; for `from ics` rows, each unmapped property is kept under its lower-cased name, as a list when it repeats (e.g. several `ATTENDEE`s);
    - drops empty values (`drop-empty`).
 3. **The pipe file** fixes one site's quirks, such as Northfield's relative URLs or Carleton's HTML in a TEXT field.
 
