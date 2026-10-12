@@ -176,6 +176,7 @@ fn freshness_and_max_age() {
         etag: None,
         last_modified: None,
         max_age: Some(SignedDuration::from_mins(10)),
+        body_sha256: None,
     };
     let at = |s: &str| s.parse::<Timestamp>().unwrap();
     assert!(meta.is_fresh(at("2026-10-12T00:09:59Z"), None));
@@ -213,4 +214,51 @@ fn the_size_cap_counts_decompressed_bytes() {
         fetch(&host, &server.url, None),
         Err(FetchError::TooLarge { limit: 10_000, .. })
     ));
+}
+
+#[test]
+fn concurrent_writers_never_pair_a_body_with_the_wrong_metadata() {
+    use ppp_core::cache::Cache;
+    let dir = temp_dir("cache-race");
+    let url = "https://example.edu/feed";
+    let writers: Vec<_> = (0..8)
+        .map(|n| {
+            let dir = dir.clone();
+            std::thread::spawn(move || {
+                let cache = Cache::new(&dir);
+                for round in 0..50 {
+                    let body = format!("body {n} {round} {}", "x".repeat(n * 100));
+                    let meta = Meta {
+                        url: url.into(),
+                        fetched: Timestamp::now(),
+                        content_type: Some(format!("text/plain; writer={n}; round={round}")),
+                        etag: None,
+                        last_modified: None,
+                        max_age: None,
+                        body_sha256: None,
+                    };
+                    cache.put(&meta, body.as_bytes()).unwrap();
+                }
+            })
+        })
+        .collect();
+    let reader = Cache::new(&dir);
+    for _ in 0..500 {
+        if let Some((meta, body)) = reader.get(url) {
+            let body = String::from_utf8(body).unwrap();
+            let tag = meta.content_type.unwrap();
+            let (n, round) = (
+                tag.split("writer=").nth(1).unwrap(),
+                tag.split("round=").nth(1).unwrap(),
+            );
+            let n = n.split(';').next().unwrap();
+            assert!(
+                body.starts_with(&format!("body {n} {round} ")),
+                "{tag} paired with {body:.20}"
+            );
+        }
+    }
+    for writer in writers {
+        writer.join().unwrap();
+    }
 }

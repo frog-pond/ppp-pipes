@@ -7,6 +7,7 @@
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use jiff::{SignedDuration, Timestamp};
 use serde::{Deserialize, Serialize};
@@ -22,6 +23,9 @@ pub struct Meta {
     pub last_modified: Option<String>,
     /// From `Cache-Control: max-age`.
     pub max_age: Option<SignedDuration>,
+    /// The SHA-256 of the body, set by `put`.
+    #[serde(default)]
+    pub body_sha256: Option<String>,
 }
 
 impl Meta {
@@ -45,34 +49,39 @@ impl Cache {
         }
     }
 
-    /// The stored response for `url`, if there is a readable one.
+    /// The stored response for `url`, if there is a readable one whose body
+    /// matches its metadata. Two writers racing on one URL can leave a body
+    /// from one and metadata from the other; the digest catches that, and
+    /// the caller fetches again.
     pub fn get(&self, url: &str) -> Option<(Meta, Vec<u8>)> {
         let (meta_path, body_path) = self.paths(url);
         let meta: Meta = serde_json::from_slice(&fs::read(meta_path).ok()?).ok()?;
-        if meta.url != url {
+        let body = fs::read(body_path).ok()?;
+        if meta.url != url || meta.body_sha256.as_deref() != Some(digest(&body).as_str()) {
             return None;
         }
-        Some((meta, fs::read(body_path).ok()?))
+        Some((meta, body))
     }
 
     /// Stores a response, replacing any earlier one for the same URL. The
-    /// body is written before the metadata, so a reader never pairs new
-    /// metadata with an old body.
+    /// metadata records the body's digest, so a reader can tell a matching
+    /// pair from a mixed one.
     pub fn put(&self, meta: &Meta, body: &[u8]) -> io::Result<()> {
         fs::create_dir_all(&self.dir)?;
         let (meta_path, body_path) = self.paths(&meta.url);
+        let meta = Meta {
+            body_sha256: Some(digest(body)),
+            ..meta.clone()
+        };
         write_atomically(&body_path, body)?;
         write_atomically(
             &meta_path,
-            &serde_json::to_vec_pretty(meta).expect("metadata serializes"),
+            &serde_json::to_vec_pretty(&meta).expect("metadata serializes"),
         )
     }
 
     fn paths(&self, url: &str) -> (PathBuf, PathBuf) {
-        let key: String = Sha256::digest(url.as_bytes())
-            .iter()
-            .map(|b| format!("{b:02x}"))
-            .collect();
+        let key = digest(url.as_bytes());
         (
             self.dir.join(format!("{key}.json")),
             self.dir.join(format!("{key}.body")),
@@ -80,10 +89,22 @@ impl Cache {
     }
 }
 
+fn digest(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+/// Writes through a temporary file unique to this process and write, then
+/// renames it into place, so readers see the old file or the new one.
 fn write_atomically(path: &Path, bytes: &[u8]) -> io::Result<()> {
-    let partial = path.with_extension("partial");
+    static WRITES: AtomicU64 = AtomicU64::new(0);
+    let n = WRITES.fetch_add(1, Ordering::Relaxed);
+    let mut partial = path.as_os_str().to_owned();
+    partial.push(format!(".{}-{n}.partial", std::process::id()));
     fs::write(&partial, bytes)?;
-    fs::rename(partial, path)
+    fs::rename(&partial, path)
 }
 
 /// The `max-age` of a `Cache-Control` header, unless it also says

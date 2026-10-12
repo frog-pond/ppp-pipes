@@ -86,6 +86,7 @@ pub fn fetch(
             etag: header("etag"),
             last_modified: header("last-modified"),
             max_age: header("cache-control").as_deref().and_then(max_age),
+            body_sha256: None,
         };
         let status = response.status().as_u16();
         // The cap counts decoded bytes: ureq's own limit counts the bytes
