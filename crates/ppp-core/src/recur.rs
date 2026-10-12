@@ -80,10 +80,23 @@ pub fn occurrences(
         None => None,
     };
     let set = match rule.as_deref() {
-        Some(rule) => rule
-            .parse::<RRule<Unvalidated>>()
-            .and_then(|rule| rule.build(dt_start))
-            .map_err(|e| RecurError::Rule(e.to_string()))?,
+        Some(rule) => {
+            let rule_error = |e: rrule::RRuleError| RecurError::Rule(e.to_string());
+            let rule = rule.parse::<RRule<Unvalidated>>().map_err(rule_error)?;
+            let set = rule.clone().build(dt_start).map_err(rule_error)?;
+            match rule.get_count() {
+                // DTSTART is the first occurrence (RFC 5545 §3.3.10). When
+                // the rule does not produce it, it still takes one of
+                // COUNT's places.
+                Some(count) if set.clone().all(1).dates.first() != Some(&dt_start) => {
+                    match count {
+                        0 | 1 => RRuleSet::new(dt_start),
+                        _ => rule.count(count - 1).build(dt_start).map_err(rule_error)?,
+                    }
+                }
+                _ => set,
+            }
+        }
         None => RRuleSet::new(dt_start),
     };
     let mut rdates: Vec<_> = series
