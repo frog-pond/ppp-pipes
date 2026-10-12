@@ -1,5 +1,5 @@
-//! The stdlib schema registry: compiles a validator for every record type,
-//! and validates records against them.
+//! The stdlib schema registry: compiles a validator and a time-field tree
+//! for every record type, and validates records against them.
 //!
 //! Schemas are embedded in the binary and resolved by `$id`. Nothing is ever
 //! fetched, so validation is offline and deterministic.
@@ -7,6 +7,10 @@
 use std::collections::BTreeMap;
 
 use serde_json::Value as Json;
+
+use crate::time_fields::{self, Documents, TimeTree};
+
+pub const COMMON_ID: &str = "https://pipes.frogpond.tech/stdlib/common/1";
 
 /// The stdlib schema documents, in the order they are registered.
 const STDLIB: &[&str] = &[
@@ -24,6 +28,14 @@ pub enum SchemaError {
     Register { id: String, message: String },
     #[error("could not compile record type {name}: {message}")]
     Compile { name: String, message: String },
+    #[error("cannot resolve $ref {reference}")]
+    UnresolvedRef { reference: String },
+    #[error(
+        "time field at {path} sits under \"{keyword}\", which the time-field walker does not follow"
+    )]
+    UnsupportedTimeKeyword { keyword: String, path: String },
+    #[error("time field at {path} is declared with two different time forms")]
+    ConflictingTimeKinds { path: String },
 }
 
 /// A validation failure for one record.
@@ -44,11 +56,18 @@ pub struct RecordType {
     pub name: String,
     /// `<schema $id>#<anchor>`, e.g. `https://pipes.frogpond.tech/stdlib/calendar/1#event`.
     pub uri: String,
+    pub time_fields: TimeTree,
     validator: jsonschema::Validator,
 }
 
 pub struct Registry {
     types: BTreeMap<String, RecordType>,
+}
+
+impl Documents for BTreeMap<String, Json> {
+    fn document(&self, id: &str) -> Option<&Json> {
+        self.get(id)
+    }
 }
 
 impl Registry {
@@ -112,11 +131,13 @@ impl Registry {
                         name: anchor.into(),
                         message: e.to_string(),
                     })?;
+                let time_fields = time_fields::walk(&by_id, id, def)?;
                 types.insert(
                     anchor.to_string(),
                     RecordType {
                         name: anchor.to_string(),
                         uri,
+                        time_fields,
                         validator,
                     },
                 );
