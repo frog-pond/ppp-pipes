@@ -363,3 +363,35 @@ fn an_empty_calendar_has_no_events() {
         Ok(vec![])
     );
 }
+
+#[test]
+fn times_must_have_exactly_the_rfc_5545_shape() {
+    for value in [
+        "20261013T12000",
+        "20261013T1200000",
+        "2026101T120000",
+        "20261013 120000",
+        "20261013T120000z",
+    ] {
+        let err = parse_events(
+            &calendar(
+                &["X-WR-TIMEZONE:America/Chicago"],
+                &[&format!("DTSTART:{value}")],
+            ),
+            None,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, IcsError::BadValue { ref property, .. } if property == "DTSTART"),
+            "{value}: {err:?}"
+        );
+    }
+    for value in ["2026101", "202610130"] {
+        let err = parse_events(
+            &calendar(&[], &[&format!("DTSTART;VALUE=DATE:{value}")]),
+            None,
+        )
+        .unwrap_err();
+        assert!(matches!(err, IcsError::BadValue { .. }), "{value}: {err:?}");
+    }
+}

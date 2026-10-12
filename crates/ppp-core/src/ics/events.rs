@@ -222,6 +222,9 @@ impl Reader<'_> {
             value: value.to_string(),
         };
         if prop.param("VALUE") == Some("DATE") || is_date_text(value) {
+            if !is_date_text(value) {
+                return Err(bad());
+            }
             let date = civil::Date::strptime("%Y%m%d", value).map_err(|_| bad())?;
             // A date belongs to no zone (RFC 5545). Use the event's zone when
             // there is one; otherwise midnight UTC, which writes back as the
@@ -236,6 +239,10 @@ impl Reader<'_> {
             Some(wall) => (wall, true),
             None => (value, false),
         };
+        // strptime alone accepts short fields (`T12000`); RFC 5545 doesn't.
+        if !is_date_time_text(wall) {
+            return Err(bad());
+        }
         let wall = civil::DateTime::strptime("%Y%m%dT%H%M%S", wall).map_err(|_| bad())?;
         let zone = if utc {
             TimeZone::UTC
@@ -278,8 +285,19 @@ fn is_date(prop: &Property) -> bool {
     prop.param("VALUE") == Some("DATE") || is_date_text(prop.value.trim())
 }
 
+/// `YYYYMMDD`
 fn is_date_text(value: &str) -> bool {
     value.len() == 8 && value.bytes().all(|b| b.is_ascii_digit())
+}
+
+/// `YYYYMMDDTHHMMSS`, without the trailing `Z`.
+fn is_date_time_text(value: &str) -> bool {
+    value.len() == 15
+        && value.as_bytes()[8] == b'T'
+        && value[..8]
+            .bytes()
+            .chain(value[9..].bytes())
+            .all(|b| b.is_ascii_digit())
 }
 
 fn strip_mailto(value: &str) -> String {
