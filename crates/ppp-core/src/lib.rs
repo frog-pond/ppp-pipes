@@ -1,5 +1,8 @@
+pub mod cache;
 pub mod commands;
 pub mod engine;
+pub mod host;
+pub mod http;
 pub mod ics;
 pub mod pipe;
 pub mod recur;
