@@ -126,9 +126,8 @@ fn runtime_errors_exit_2_with_the_diagnostic() {
     let out = ppp(&["run", "fixtures/pipes/fails.nu"]);
     assert_eq!(out.status.code(), Some(2));
     assert_eq!(text(&out.stdout), "");
-    assert!(
-        text(&out.stderr).contains("the source is down"),
-        "{}",
-        text(&out.stderr)
-    );
+    let stderr = text(&out.stderr);
+    assert!(stderr.contains("the source is down"), "{stderr}");
+    // The pipe must load and then fail while running, not fail to parse.
+    assert!(!stderr.contains("nu::parser"), "{stderr}");
 }
