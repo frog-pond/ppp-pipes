@@ -30,6 +30,8 @@ pub enum IcsError {
     },
     #[error("unknown time zone \"{0}\" given with --tz")]
     UnknownDefaultZone(String),
+    #[error("input is not an iCalendar feed (no BEGIN:VCALENDAR)")]
+    NotCalendar,
 }
 
 /// One VEVENT, with the columns of `nushell-ics/ics.nu` plus `tz`,
@@ -78,8 +80,17 @@ pub fn parse_events(text: &str, default_tz: Option<&str>) -> Result<Vec<Event>, 
     if let Some(tz) = default_tz {
         TimeZone::get(tz).map_err(|_| IcsError::UnknownDefaultZone(tz.to_string()))?;
     }
+    let calendars: Vec<Component> = parse_components(text)?
+        .into_iter()
+        .filter(|c| c.name == "VCALENDAR")
+        .collect();
+    // A moved feed or a login page often comes back as HTML; without this
+    // check it would read as a calendar with no events.
+    if calendars.is_empty() {
+        return Err(IcsError::NotCalendar);
+    }
     let mut events = Vec::new();
-    for calendar in parse_components(text)? {
+    for calendar in calendars {
         let zone = calendar_zone(&calendar).or(default_tz.map(str::to_string));
         for component in calendar.components.iter().filter(|c| c.name == "VEVENT") {
             events.push(read_event(component, zone.as_deref())?);

@@ -340,3 +340,26 @@ fn a_feed_the_size_of_carletons_parses() {
     assert_eq!(events.len(), 5000);
     assert_eq!(events[4999].uid.as_deref(), Some("4999@example.edu"));
 }
+
+#[test]
+fn input_that_is_not_a_calendar_is_an_error() {
+    for text in [
+        "",
+        "<html><body>Moved</body></html>",
+        "BEGIN:VCARD\nFN:Jane\nEND:VCARD\n",
+    ] {
+        assert_eq!(
+            parse_events(text, None),
+            Err(IcsError::NotCalendar),
+            "{text:?}"
+        );
+    }
+}
+
+#[test]
+fn an_empty_calendar_has_no_events() {
+    assert_eq!(
+        parse_events("BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n", None),
+        Ok(vec![])
+    );
+}
