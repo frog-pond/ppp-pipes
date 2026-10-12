@@ -43,6 +43,13 @@ export def uniq-events []: table -> table {
     | reject __key
 }
 
+# A URL with any non-ASCII characters percent-encoded, as the schema's `uri`
+# format requires (pages and CDNs serve IRIs like `.../Mesa-de-español.png`).
+def web-url []: string -> string {
+    # Joining from `params` would re-encode the query; the query string is kept.
+    url parse | reject params | url join
+}
+
 # Turn rows from a format reader (`from ics`, `from tribe-events`,
 # `from presence`) into stdlib `event` records.
 #
@@ -107,13 +114,13 @@ def event-from-row [source: any, tz: any]: record -> record {
         status: (if $status in [tentative confirmed cancelled] { $status })
         location: $location
         attendance: $row.attendance?
-        online: $row.online?
+        online: ($row.online? | if $in != null { update url { web-url } })
         excerpt: ($row.excerpt? | html to-text)
         description: ($row.description? | default ($row.description_html? | html to-text) | if $in != null { str trim })
         content: $content
-        url: (if $has_web_url { $row.url })
-        links: ($row.links? | default [])
-        images: ($row.images? | default [])
+        url: (if $has_web_url { $row.url | web-url })
+        links: ($row.links? | default [] | update url { web-url })
+        images: ($row.images? | default [] | update url { web-url })
         cost: $row.cost?
         categories: ($row.categories? | default [] | uniq)
         keywords: ($row.keywords? | default [] | uniq)

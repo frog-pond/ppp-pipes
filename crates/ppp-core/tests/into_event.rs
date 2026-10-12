@@ -176,3 +176,10 @@ fn drop_empty_removes_only_empty_values() {
         "{e: 0, f: false, g: x, h: [1]}"
     );
 }
+
+#[test]
+fn urls_with_non_ascii_characters_are_percent_encoded() {
+    let ics = "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:a\nSUMMARY:Mesa\nDTSTART:20261013T120000Z\nURL:https://www.example.edu/mesa-de-español\nEND:VEVENT\nEND:VCALENDAR\n";
+    let event = events(ics).remove(0);
+    assert_eq!(event["url"], "https://www.example.edu/mesa-de-espa%C3%B1ol");
+}
