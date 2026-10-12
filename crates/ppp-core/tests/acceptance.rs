@@ -107,11 +107,12 @@ fn carleton_week_cleans_up_its_feed() {
     // The fixture has seven events, two of them the same event.
     assert_eq!(records.len(), 6);
     assert!(records.iter().any(|e| e["content"]["type"] == "html"));
-    for event in &records {
-        if let Some(url) = event["url"].as_str() {
-            assert!(!url.contains("&amp;") && !url.contains('\\'), "{url}");
-        }
-    }
+    // The fixture's one URL is escaped like TEXT: `&amp\\;sport_id=19`.
+    let urls: Vec<&str> = records.iter().filter_map(|e| e["url"].as_str()).collect();
+    assert_eq!(
+        urls,
+        ["https://athletics.carleton.edu/calendar.aspx?game_id=10972&sport_id=19"]
+    );
 }
 
 #[test]
