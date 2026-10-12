@@ -27,6 +27,22 @@ export def during [from: datetime, until: datetime]: table -> table {
     }
 }
 
+# Keep the first of events that share a summary and start. Starts are
+# compared as moments, not as text, so 19:30-05:00 and 00:30Z match; all-day
+# starts are compared as dates in the event's zone.
+export def uniq-events []: table -> table {
+    insert __key {|row|
+        let start = if ($row.all_day? | default false) {
+            $row.start | date to-timezone ($row.tz? | default UTC) | format date "%Y-%m-%d"
+        } else {
+            $row.start | date to-timezone UTC | format date "%Y-%m-%dT%H:%M:%S"
+        }
+        $"($row.summary)\n($start)"
+    }
+    | uniq-by __key
+    | reject __key
+}
+
 # Turn rows from a format reader (`from ics`, `from tribe-events`,
 # `from presence`) into stdlib `event` records.
 #

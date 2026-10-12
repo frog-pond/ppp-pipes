@@ -16,11 +16,13 @@ export def main [
     --within: duration = 1wk  # How far ahead to look
     --from: datetime          # Start of the window (default: now)
 ]: nothing -> table {
+    use pipes *
     let args = {within: $within} | merge (if $from != null { {from: $from} } else { {} })
-    [campus-week stolaf-wp presence carleton-week northfield]
+    # stolaf-wp first: where St. Olaf's two calendars list the same event,
+    # its records (with venues and costs) are the ones kept.
+    [stolaf-wp campus-week presence carleton-week northfield]
     | each {|name| pipe get $name $args }
     | flatten
-    # St. Olaf's two calendars list many of the same events.
-    | uniq-by summary start
+    | uniq-events
     | sort-by start
 }

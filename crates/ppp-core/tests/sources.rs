@@ -80,12 +80,9 @@ fn tribe_all_day_events_end_exclusively() {
     let events = tribe();
     let visit = by_summary(&events, "Admissions: Fall Visit Days");
     assert_eq!(visit["all_day"], true);
-    let (start, end) = (
-        visit["start"].as_str().unwrap(),
-        visit["end"].as_str().unwrap(),
-    );
-    assert_eq!(start.len(), 10);
-    assert!(end > start, "{start} .. {end}");
+    // Tribe says the last day ends at 23:59:59; events end exclusively.
+    assert_eq!(visit["start"], "2026-10-14");
+    assert_eq!(visit["end"], "2026-10-17");
 }
 
 #[test]
@@ -139,4 +136,18 @@ fn presence_events() {
             .count(),
         1
     );
+}
+
+#[test]
+fn uniq_events_compares_starts_as_moments() {
+    let mut engine = Engine::new();
+    let source = "use pipes *; [
+        {summary: Concert, start: 2026-10-14T19:30:00-05:00, tz: America/Chicago}
+        {summary: Concert, start: 2026-10-15T00:30:00Z, tz: America/Chicago}
+        {summary: 'Fall Break', start: 2026-10-10T00:00:00-05:00, all_day: true, tz: America/Chicago}
+        {summary: 'Fall Break', start: 2026-10-10T05:00:00Z, all_day: true, tz: America/Chicago}
+        {summary: Concert, start: 2026-10-15T19:30:00-05:00, tz: America/Chicago}
+    ] | uniq-events | length";
+    let count = engine.eval(source, Value::test_nothing()).unwrap();
+    assert_eq!(count.as_int().unwrap(), 3);
 }

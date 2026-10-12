@@ -81,6 +81,7 @@ fn our_commands_do_not_shadow_nushell_builtins() {
         "into event",
         "drop-empty",
         "during",
+        "uniq-events",
     ] {
         assert!(
             full.find_decl(name.as_bytes(), &[]).is_none(),
