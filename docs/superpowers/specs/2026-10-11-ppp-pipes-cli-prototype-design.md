@@ -139,16 +139,17 @@ ppp validate <file.json | file.jsonl>
 
 ### 4.5 `nu_plugin_pipes`
 
-A standard nushell plugin that offers every command in §4.2. In stock `nu`:
+A standard nushell plugin that offers every command in §4.2 except `query web`, which comes from nushell's own `nu_plugin_query`. In stock `nu`:
 
 ```nu
 plugin add ~/.cargo/bin/nu_plugin_pipes; plugin use pipes
+plugin add ~/.cargo/bin/nu_plugin_query; plugin use query  # for pipes that read HTML, such as carleton-week
 use ppp *
 http get $url | from ics | expand rrule --from (date now) --until ((date now) + 1wk) | into event | validate
-pipe get campus-week {days: 3}
+pipe get campus-week {within: 3day}
 ```
 
-Pipe files run unchanged: `use pipes/campus-week.nu; campus-week --within 3day`.
+Pipe files run unchanged: `use pipes/campus-week.nu; campus-week --within 3day`. Without `nu_plugin_query`, a pipe that uses `query web` fails to load: stock `nu` has a built-in `query` command, so the parser reports "Extra positional argument" rather than an unknown command.
 
 Outside the runner there is no sandbox, and `http get` is nushell's own, without our cache. `pipe get` is the exception: it runs the full sandboxed engine inside the plugin process, with the cache (in the user cache directory), validation and a 60-second limit. In the plugin it takes `--pipes-dir`, relative to nushell's current directory (default `./pipes`).
 

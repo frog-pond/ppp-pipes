@@ -178,6 +178,43 @@ fn carleton_week_adds_pictures_from_its_page() {
 }
 
 #[test]
+fn carleton_week_resolves_relative_pictures_and_skips_inline_ones() {
+    let feed = serve(vec![reply(
+        "200 OK",
+        &[],
+        &read("fixtures/ics/carleton.ics"),
+    )]);
+    let html = read("fixtures/html/carleton-calendar.html")
+        .replace(
+            "https://cdn.carleton.edu/uploads/sites/513/",
+            "/uploads/sites/513/",
+        )
+        .replace(
+            "https://cdn.carleton.edu/uploads/sites/624/2023/05/ptm-logo.png",
+            "data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+        );
+    let page = serve(vec![reply(
+        "200 OK",
+        &[("Content-Type", "text/html")],
+        &html,
+    )]);
+    let mut args = window(&feed.url);
+    args.push("page", Value::test_string(page.url.clone()));
+    let records = run("carleton-week", args).unwrap();
+    assert_eq!(records.len(), 6);
+    let urls: Vec<&str> = records
+        .iter()
+        .filter_map(|e| e["images"][0]["url"].as_str())
+        .collect();
+    assert!(
+        urls.iter()
+            .any(|u| u.starts_with("http://") && u.ends_with("/uploads/sites/513/2026/09/CACTS-map.jpg")),
+        "{urls:?}"
+    );
+    assert!(urls.iter().all(|u| !u.starts_with("data:")), "{urls:?}");
+}
+
+#[test]
 fn carleton_week_without_its_page_still_has_its_events() {
     let feed = serve(vec![reply(
         "200 OK",
