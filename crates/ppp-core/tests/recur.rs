@@ -269,7 +269,7 @@ fn too_many_occurrences_is_an_error() {
 #[test]
 fn bad_rules_are_errors() {
     let start = zoned("2026-10-27T18:00:00[America/Chicago]");
-    for rule in ["FREQ=SOMETIMES", "FREQ=DAILY;UNTIL=20261030T180000"] {
+    for rule in ["FREQ=SOMETIMES", "FREQ=DAILY;UNTIL=someday"] {
         let series = Series {
             start: &start,
             rrule: Some(rule),
@@ -284,4 +284,73 @@ fn bad_rules_are_errors() {
         );
         assert!(matches!(err, Err(RecurError::Rule(_))), "{rule}: {err:?}");
     }
+}
+
+#[test]
+fn a_date_until_includes_its_whole_day() {
+    // RFC 5545 requires a DATE UNTIL when DTSTART is a DATE.
+    let start = zoned("2026-11-05T00:00:00[America/Chicago]");
+    let series = Series {
+        start: &start,
+        rrule: Some("FREQ=WEEKLY;UNTIL=20261126"),
+        rdates: &[],
+        exdates: &[],
+    };
+    assert_eq!(
+        starts(
+            &series,
+            SignedDuration::from_hours(24),
+            "2026-11-01T00:00:00Z",
+            "2027-01-01T00:00:00Z"
+        ),
+        [
+            "2026-11-05T00:00:00-06:00[America/Chicago]",
+            "2026-11-12T00:00:00-06:00[America/Chicago]",
+            "2026-11-19T00:00:00-06:00[America/Chicago]",
+            "2026-11-26T00:00:00-06:00[America/Chicago]",
+        ]
+    );
+}
+
+#[test]
+fn a_floating_until_is_read_in_the_series_zone() {
+    // RFC 5545 requires a floating UNTIL when DTSTART is floating; ours are
+    // zoned through the calendar's zone, so UNTIL is read in that zone.
+    let start = zoned("2026-10-27T18:00:00[America/Chicago]");
+    let series = Series {
+        start: &start,
+        rrule: Some("FREQ=DAILY;UNTIL=20261030T180000"),
+        rdates: &[],
+        exdates: &[],
+    };
+    assert_eq!(
+        starts(
+            &series,
+            TWO_HOURS,
+            "2026-10-01T00:00:00Z",
+            "2026-12-01T00:00:00Z"
+        )
+        .len(),
+        4
+    );
+}
+
+#[test]
+fn an_until_before_dtstart_leaves_just_dtstart() {
+    let start = zoned("2026-10-27T18:00:00[America/Chicago]");
+    let series = Series {
+        start: &start,
+        rrule: Some("FREQ=DAILY;UNTIL=20261020T000000Z"),
+        rdates: &[],
+        exdates: &[],
+    };
+    assert_eq!(
+        starts(
+            &series,
+            TWO_HOURS,
+            "2026-10-01T00:00:00Z",
+            "2026-12-01T00:00:00Z"
+        ),
+        ["2026-10-27T18:00:00-05:00[America/Chicago]"]
+    );
 }

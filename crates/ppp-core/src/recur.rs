@@ -4,7 +4,8 @@
 //! chrono and chrono-tz; everything in and out is jiff.
 
 use chrono::TimeZone as _;
-use jiff::{SignedDuration, Timestamp, Zoned};
+use jiff::tz::TimeZone;
+use jiff::{SignedDuration, Timestamp, Zoned, civil};
 use rrule::{RRule, RRuleSet, Tz, Unvalidated};
 
 /// The most occurrences one series may produce inside a window.
@@ -54,7 +55,15 @@ pub fn occurrences(
     };
 
     let dt_start = to_chrono(series.start.timestamp());
-    let set = match series.rrule {
+    let rule = match series.rrule {
+        Some(rule) => match until_in_utc(rule, &zone)? {
+            // A series cut back to before its start still has DTSTART.
+            (_, Some(until)) if until < series.start.timestamp() => None,
+            (rule, _) => Some(rule),
+        },
+        None => None,
+    };
+    let set = match rule.as_deref() {
         Some(rule) => rule
             .parse::<RRule<Unvalidated>>()
             .and_then(|rule| rule.build(dt_start))
@@ -105,4 +114,44 @@ pub fn occurrences(
         .collect();
     starts.dedup();
     Ok(starts)
+}
+
+/// Rewrites a rule's `UNTIL` in UTC, and returns it. RFC 5545 has `UNTIL` be
+/// a DATE when DTSTART is a DATE and floating when DTSTART is floating; the
+/// `rrule` crate would read those in the machine's zone, so they are read
+/// here in the series' zone instead. A DATE `UNTIL` covers its whole day.
+fn until_in_utc(rule: &str, zone: &TimeZone) -> Result<(String, Option<Timestamp>), RecurError> {
+    let mut until = None;
+    let mut parts = Vec::new();
+    for part in rule.split(';') {
+        let Some((key, value)) = part.split_once('=') else {
+            parts.push(part.to_string());
+            continue;
+        };
+        if !key.eq_ignore_ascii_case("UNTIL") {
+            parts.push(part.to_string());
+            continue;
+        }
+        let bad = || {
+            RecurError::Rule(format!(
+                "UNTIL value \"{value}\" is not a date or date-time"
+            ))
+        };
+        let wall = match value.len() {
+            8 => civil::Date::strptime("%Y%m%d", value).map(|d| d.at(23, 59, 59, 0)),
+            15 | 16 => civil::DateTime::strptime("%Y%m%dT%H%M%S", value.trim_end_matches('Z')),
+            _ => return Err(bad()),
+        }
+        .map_err(|_| bad())?;
+        let at = if value.ends_with('Z') {
+            wall.to_zoned(TimeZone::UTC)
+        } else {
+            wall.to_zoned(zone.clone())
+        }
+        .map_err(|_| bad())?
+        .timestamp();
+        parts.push(format!("UNTIL={}", at.strftime("%Y%m%dT%H%M%SZ")));
+        until = Some(at);
+    }
+    Ok((parts.join(";"), until))
 }
