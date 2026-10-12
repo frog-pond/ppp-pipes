@@ -2,11 +2,14 @@
 //! output at the boundary (spec §5.1).
 
 use std::path::Path;
+use std::sync::Arc;
 
+use jiff::SignedDuration;
 use nu_protocol::{Record, Span, Value};
 use serde_json::Value as Json;
 
 use crate::engine::{Engine, EngineError};
+use crate::host::Host;
 use crate::schema::{RecordError, Registry};
 use crate::serialize::record_to_json;
 
@@ -18,6 +21,8 @@ pub enum PipeError {
     Metadata { path: String, message: String },
     #[error("{pipe} has no flag --{flag}")]
     UnknownFlag { pipe: String, flag: String },
+    #[error("pipes get each other in a loop: {}", .0.join(" → "))]
+    Cycle(Vec<String>),
 }
 
 /// What the host knows about a pipe without running it.
@@ -33,6 +38,20 @@ pub struct PipeInfo {
     pub params: Vec<Param>,
     /// Record type URIs from `export const pipe = { output: [...] }`.
     pub output: Vec<String>,
+    /// How long a fetched response stays fresh, from `pipe.refresh`.
+    pub refresh: Option<SignedDuration>,
+    /// From `@category`.
+    pub category: String,
+    /// From `@search-terms`.
+    pub search_terms: Vec<String>,
+    /// From `@example`.
+    pub examples: Vec<Example>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Example {
+    pub description: String,
+    pub example: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -51,9 +70,14 @@ pub struct Pipe {
 }
 
 impl Pipe {
-    /// Loads the pipe at `path` into a fresh engine and reads its metadata.
-    /// Nothing in the pipe runs except its constant definitions.
+    /// Loads the pipe at `path` with a default `Host` (no cache).
     pub fn load(path: &Path) -> Result<Pipe, PipeError> {
+        Pipe::load_with(path, Arc::new(Host::default()))
+    }
+
+    /// Loads the pipe at `path` into a fresh engine sharing `host`, and reads
+    /// its metadata. Nothing in the pipe runs except its constant definitions.
+    pub fn load_with(path: &Path, host: Arc<Host>) -> Result<Pipe, PipeError> {
         let metadata = |message: String| PipeError::Metadata {
             path: path.display().to_string(),
             message,
@@ -72,14 +96,14 @@ impl Pipe {
                 "pipe file names may use only letters, digits, `-` and `_`, not \"{name}\""
             )));
         }
-        let mut engine = Engine::new();
+        let mut engine = Engine::with_host(host);
         engine.eval(
             &format!("use {}", nu_string(&full.to_string_lossy())),
             Value::nothing(Span::unknown()),
         )?;
 
         let found = engine.eval(
-            &format!("scope commands | where name == {} | select description extra_description signatures", nu_string(&name)),
+            &format!("scope commands | where name == {} | select description extra_description category search_terms examples signatures", nu_string(&name)),
             Value::nothing(Span::unknown()),
         )?;
         let command = found
@@ -117,12 +141,52 @@ impl Pipe {
             ));
         }
 
+        let refresh = match engine.eval(
+            &format!("{constant}.refresh? | default null"),
+            Value::nothing(Span::unknown()),
+        )? {
+            Value::Duration { val, .. } => Some(SignedDuration::from_nanos(val)),
+            Value::Nothing { .. } => None,
+            _ => {
+                return Err(metadata(
+                    "`pipe.refresh` must be a duration, e.g. 1hr".into(),
+                ));
+            }
+        };
+        engine.set_refresh(refresh);
+        let search_terms = field("search_terms")
+            .split(',')
+            .map(|term| term.trim().to_string())
+            .filter(|term| !term.is_empty())
+            .collect();
+        let examples = match command.get_data_by_key("examples") {
+            Some(Value::List { vals, .. }) => vals
+                .iter()
+                .map(|example| {
+                    let text = |key: &str| {
+                        example
+                            .get_data_by_key(key)
+                            .and_then(|v| v.coerce_into_string().ok())
+                            .unwrap_or_default()
+                    };
+                    Example {
+                        description: text("description"),
+                        example: text("example"),
+                    }
+                })
+                .collect(),
+            _ => Vec::new(),
+        };
         let info = PipeInfo {
             name,
             title: field("description"),
             description: field("extra_description"),
             params,
             output,
+            refresh,
+            category: field("category"),
+            search_terms,
+            examples,
         };
         Ok(Pipe { engine, info })
     }
@@ -177,6 +241,8 @@ impl Pipe {
     }
 
     fn call(&mut self, source: &str, input: Value) -> Result<Vec<Value>, PipeError> {
+        let host = self.engine.host().clone();
+        let _running = host.enter(&self.info.name).map_err(PipeError::Cycle)?;
         Ok(match self.engine.eval(source, input)? {
             Value::List { vals, .. } => vals.to_vec(),
             Value::Nothing { .. } => Vec::new(),
