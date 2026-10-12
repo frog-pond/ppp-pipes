@@ -1,0 +1,13 @@
+[package]
+name = "ppp-cli"
+version = "0.1.0"
+edition.workspace = true
+
+[[bin]]
+name = "ppp"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+ppp-core = { path = "../ppp-core" }
+serde_json.workspace = true

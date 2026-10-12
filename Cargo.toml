@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/ppp-core"]
+members = ["crates/ppp-core", "crates/ppp-cli"]
 
 [workspace.package]
 edition = "2024"
