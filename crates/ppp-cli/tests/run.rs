@@ -131,3 +131,13 @@ fn runtime_errors_exit_2_with_the_diagnostic() {
     // The pipe must load and then fail while running, not fail to parse.
     assert!(!stderr.contains("nu::parser"), "{stderr}");
 }
+
+#[test]
+fn switches_take_no_value() {
+    let out = ppp(&["run", "fixtures/pipes/two-events.nu", "--loud=false"]);
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(
+        text(&out.stderr),
+        "ppp: --loud is a switch and takes no value\n"
+    );
+}

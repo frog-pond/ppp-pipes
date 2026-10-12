@@ -92,6 +92,9 @@ fn parse_flags(pipe: &str, params: &[Param], args: &[String]) -> Result<Record, 
             .find(|p| p.name == name)
             .ok_or_else(|| format!("ppp: {pipe} has no flag --{name}; {}", usage()))?;
         if param.shape == "switch" {
+            if inline.is_some() {
+                return Err(format!("ppp: --{name} is a switch and takes no value"));
+            }
             record.push(name, Value::bool(true, Span::unknown()));
             continue;
         }
