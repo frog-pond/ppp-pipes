@@ -55,6 +55,14 @@ impl Host {
         }
     }
 
+    /// This host, using `registry` instead of compiling its own. A
+    /// long-lived embedder (the plugin) compiles the stdlib once and hands
+    /// it to each run's host.
+    pub fn with_registry(self, registry: Arc<Registry>) -> Host {
+        let _ = self.registry.set(registry);
+        self
+    }
+
     /// The flag every engine of this host checks; setting it stops them.
     pub fn interrupt(&self) -> Arc<AtomicBool> {
         self.interrupt.clone()

@@ -194,3 +194,10 @@ fn pipe_get_names_stay_in_the_pipes_dir() {
         );
     }
 }
+
+#[test]
+fn a_host_can_share_a_compiled_registry() {
+    let registry = Arc::new(ppp_core::schema::Registry::stdlib().unwrap());
+    let host = Host::new(HostConfig::default()).with_registry(registry.clone());
+    assert!(Arc::ptr_eq(&host.registry().unwrap(), &registry));
+}
