@@ -1,4 +1,4 @@
-//! Every example record is valid, and every invalid record fails at the
+//! Every example record (JSON array or JSONL) is valid, and every invalid record fails at the
 //! place its file name describes.
 
 use std::fs;
@@ -15,6 +15,12 @@ fn fixtures(dir: &str) -> PathBuf {
 
 fn records(path: &Path) -> Vec<Json> {
     let text = fs::read_to_string(path).unwrap();
+    if path.extension().is_some_and(|ext| ext == "jsonl") {
+        return text
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+    }
     match serde_json::from_str(&text).unwrap() {
         Json::Array(records) => records,
         other => panic!("{} is not a JSON array: {other}", path.display()),
@@ -39,7 +45,7 @@ fn every_example_is_valid() {
         assert!(errors.is_empty(), "{}: {errors:#?}", path.display());
         checked += 1;
     }
-    assert_eq!(checked, 4);
+    assert_eq!(checked, 5);
 }
 
 /// Each invalid fixture and the JSON Pointer its one mistake is reported at.
