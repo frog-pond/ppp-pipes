@@ -131,6 +131,12 @@ impl Pipe {
         &self.info
     }
 
+    /// Returns, and forgets, nushell's warnings from loading and running
+    /// the pipe (deprecations, for example), rendered.
+    pub fn take_warnings(&mut self) -> Vec<String> {
+        self.engine.take_warnings()
+    }
+
     /// Runs `main` with the given flag values and returns its records.
     /// Flags must be names from `info().params`; a switch is passed when its
     /// value is `true`.

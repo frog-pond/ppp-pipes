@@ -53,13 +53,13 @@ def event-from-row [source: any, tz: any]: record -> record {
     } else {
         {id: $row.uid}
     }
-    let status = $row.status? | default "" | str downcase
+    let status = $row.status? | default "" | str lowercase
     let has_location = $row.location? | is-not-empty
     let has_web_url = ($row.url? | default "") =~ '^https?://'
     let leftovers = $row.props? | default [] | where name not-in $MAPPED_PROPS | group-by name
         | items {|name, props|
             let values = $props | get value
-            {key: ($name | str downcase), value: (if ($values | length) == 1 { $values.0 } else { $values })}
+            {key: ($name | str lowercase), value: (if ($values | length) == 1 { $values.0 } else { $values })}
         }
         | reduce --fold {} {|field, acc| $acc | insert $field.key $field.value }
     let extra = $leftovers

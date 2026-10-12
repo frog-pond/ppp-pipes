@@ -28,6 +28,6 @@ END:VEVENT
 END:VCALENDAR"
     | from ics
     | first $count
-    | update summary {|row| $"($prefix)($row.summary)" | if $loud { str upcase } else { $in } }
+    | update summary {|row| $"($prefix)($row.summary)" | if $loud { str uppercase } else { $in } }
     | into event
 }

@@ -25,6 +25,8 @@ pub struct EngineError(pub String);
 pub struct Engine {
     state: EngineState,
     stack: Stack,
+    /// Rendered parse warnings not yet taken by `take_warnings`.
+    warnings: Vec<String>,
 }
 
 impl Engine {
@@ -54,6 +56,7 @@ impl Engine {
         Engine {
             state,
             stack: Stack::new(),
+            warnings: Vec::new(),
         }
     }
 
@@ -69,6 +72,12 @@ impl Engine {
             }
             if let Some(err) = working_set.compile_errors.first() {
                 return Err(EngineError(format_cli_error(None, &working_set, err, None)));
+            }
+            // nushell formats warnings and errors the same way; only the
+            // leading word differs.
+            for warning in &working_set.parse_warnings {
+                let text = format_cli_error(None, &working_set, warning, None);
+                self.warnings.push(text.replacen("Error: ", "Warning: ", 1));
             }
             let delta = working_set.render();
             self.state
@@ -86,6 +95,12 @@ impl Engine {
             Ok(value) => Ok(value),
             Err(err) => Err(self.render(&err)),
         }
+    }
+
+    /// Returns, and forgets, the warnings nushell reported while parsing
+    /// since the last call (deprecations, for example), rendered.
+    pub fn take_warnings(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.warnings)
     }
 
     /// Whether a command with this name is registered.
@@ -165,7 +180,7 @@ fn bind_data_commands(working_set: &mut StateWorkingSet) {
         SplitList,
         SplitRow,
         StrContains,
-        StrDowncase,
+        StrLowercase,
         StrEndswith,
         StrJoin,
         StrLength,
@@ -173,7 +188,7 @@ fn bind_data_commands(working_set: &mut StateWorkingSet) {
         StrStartsWith,
         StrSubstring,
         StrTrim,
-        StrUpcase,
+        StrUppercase,
         Lines,
         // Conversions
         IntoBool,

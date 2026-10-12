@@ -6,7 +6,10 @@ use ppp_core::engine::Engine;
 fn kept(rows: &str, from: &str, until: &str) -> String {
     let mut engine = Engine::new();
     engine
-        .eval(&format!("use pipes *; {rows} | during {from} {until} | get name | to nuon"), Value::test_nothing())
+        .eval(
+            &format!("use pipes *; {rows} | during {from} {until} | get name | to nuon"),
+            Value::test_nothing(),
+        )
         .unwrap()
         .coerce_into_string()
         .unwrap()
@@ -25,17 +28,35 @@ const ROWS: &str = "[
 #[test]
 fn keeps_events_that_overlap_the_window() {
     assert_eq!(
-        kept(ROWS, "2026-10-12T15:00:00-05:00", "2026-10-15T15:00:00-05:00"),
+        kept(
+            ROWS,
+            "2026-10-12T15:00:00-05:00",
+            "2026-10-15T15:00:00-05:00"
+        ),
         "[ongoing, today-all-day, inside, no-end]"
     );
 }
 
 #[test]
 fn an_event_ending_as_the_window_opens_is_out() {
-    assert_eq!(kept(ROWS, "2026-10-10T10:00:00-05:00", "2026-10-10T11:00:00-05:00"), "[ongoing]");
+    assert_eq!(
+        kept(
+            ROWS,
+            "2026-10-10T10:00:00-05:00",
+            "2026-10-10T11:00:00-05:00"
+        ),
+        "[ongoing]"
+    );
 }
 
 #[test]
 fn an_event_without_an_end_is_a_moment() {
-    assert_eq!(kept(ROWS, "2026-10-14T12:00:00-05:00", "2026-10-14T13:00:00-05:00"), "[ongoing, no-end]");
+    assert_eq!(
+        kept(
+            ROWS,
+            "2026-10-14T12:00:00-05:00",
+            "2026-10-14T13:00:00-05:00"
+        ),
+        "[ongoing, no-end]"
+    );
 }

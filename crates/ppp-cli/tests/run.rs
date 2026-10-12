@@ -141,3 +141,11 @@ fn switches_take_no_value() {
         "ppp: --loud is a switch and takes no value\n"
     );
 }
+
+#[test]
+fn warnings_are_printed_and_the_run_succeeds() {
+    let out = ppp(&["run", "fixtures/pipes/warns.nu"]);
+    assert_eq!(records(&out).len(), 0);
+    let stderr = text(&out.stderr);
+    assert!(stderr.contains("old-helper is deprecated"), "{stderr}");
+}

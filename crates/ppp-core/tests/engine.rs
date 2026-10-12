@@ -20,7 +20,7 @@ fn evaluates_with_pipeline_input() {
     let mut engine = Engine::new();
     let out = nuon(
         &mut engine,
-        "$in | lines | each { str upcase }",
+        "$in | lines | each { str uppercase }",
         Value::test_string("a\nb"),
     );
     assert_eq!(out, "[A, B]");
@@ -97,4 +97,30 @@ fn the_working_directory_is_the_root() {
         nuon(&mut engine, "$env.PWD", Value::test_nothing()),
         r#""/""#
     );
+}
+
+#[test]
+fn no_registered_command_is_deprecated() {
+    let mut engine = Engine::new();
+    let deprecated = nuon(
+        &mut engine,
+        "scope commands | where type == built-in | where { $in.deprecation_info | where type == Command | is-not-empty } | get name",
+        Value::test_nothing(),
+    );
+    assert_eq!(deprecated, "[]");
+}
+
+#[test]
+fn parse_warnings_are_kept() {
+    let mut engine = Engine::new();
+    engine
+        .eval(
+            "@deprecated \"use new\"\ndef old [] { 1 }\nold",
+            Value::test_nothing(),
+        )
+        .unwrap();
+    let warnings = engine.take_warnings();
+    assert_eq!(warnings.len(), 1, "{warnings:?}");
+    assert!(warnings[0].contains("old is deprecated"), "{}", warnings[0]);
+    assert!(engine.take_warnings().is_empty());
 }

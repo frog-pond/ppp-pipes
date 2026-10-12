@@ -28,6 +28,9 @@ fn try_run(pipe: &str, pipes_dir: &Path, args: &[String]) -> Result<ExitCode, St
     let mut loaded = Pipe::load(&path).map_err(|e| format!("ppp: {e}"))?;
     let flags = parse_flags(loaded.info().name.as_str(), &loaded.info().params, args)?;
     let records = loaded.run(&flags).map_err(|e| format!("ppp: {e}"))?;
+    for warning in loaded.take_warnings() {
+        eprintln!("{warning}");
+    }
     let registry = Registry::stdlib().map_err(|e| format!("ppp: stdlib schemas: {e}"))?;
     match check_records(&registry, loaded.info(), &records) {
         Ok(json) => {
