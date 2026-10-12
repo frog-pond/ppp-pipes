@@ -95,9 +95,12 @@ impl Pipe {
                 "pipe file names may use only letters, digits, `-` and `_`, not \"{name}\""
             )));
         }
+        let source = std::fs::read_to_string(&full).map_err(|e| metadata(e.to_string()))?;
+        let module = full.to_string_lossy();
         let mut engine = Engine::with_host(host);
+        engine.add_module(&module, &source)?;
         engine.eval(
-            &format!("use {}", nu_string(&full.to_string_lossy())),
+            &format!("use {}", nu_string(&module)),
             Value::nothing(Span::unknown()),
         )?;
 
