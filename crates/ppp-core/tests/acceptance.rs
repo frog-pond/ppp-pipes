@@ -140,3 +140,65 @@ fn northfield_links_each_event_to_its_page() {
         assert!(!event["description"].as_str().unwrap().starts_with(' '));
     }
 }
+
+#[test]
+fn carleton_week_adds_pictures_from_its_page() {
+    let feed = serve(vec![reply(
+        "200 OK",
+        &[],
+        &read("fixtures/ics/carleton.ics"),
+    )]);
+    let page = serve(vec![reply(
+        "200 OK",
+        &[("Content-Type", "text/html")],
+        &read("fixtures/html/carleton-calendar.html"),
+    )]);
+    let mut args = window(&feed.url);
+    args.push("page", Value::test_string(page.url.clone()));
+    let records = run("carleton-week", args).unwrap();
+    let pictured: Vec<&Json> = records
+        .iter()
+        .filter(|e| e.get("images").is_some())
+        .collect();
+    assert!(!pictured.is_empty());
+    for event in &pictured {
+        let url = event["images"][0]["url"].as_str().unwrap();
+        // The page shows a 100x100 crop; the record links the original.
+        assert!(
+            url.starts_with("https://cdn.carleton.edu/") && !url.contains('?'),
+            "{url}"
+        );
+        assert_eq!(event["images"][0]["alt"], event["summary"]);
+    }
+    let request = &page.requests.lock().unwrap()[0];
+    assert!(
+        request.contains("start_date=2026-08-31") && request.contains("end_date="),
+        "{request}"
+    );
+}
+
+#[test]
+fn carleton_week_without_its_page_still_has_its_events() {
+    let feed = serve(vec![reply(
+        "200 OK",
+        &[],
+        &read("fixtures/ics/carleton.ics"),
+    )]);
+    let page = serve(vec![reply("503 Service Unavailable", &[], "")]);
+    let host = Arc::new(Host::new(HostConfig {
+        pipes_dir: repo("pipes"),
+        ..HostConfig::default()
+    }));
+    let mut pipe = Pipe::load_with(&repo("pipes/carleton-week.nu"), host.clone()).unwrap();
+    let mut args = window(&feed.url);
+    args.push("page", Value::test_string(page.url.clone()));
+    let records = pipe.run(&args).unwrap();
+    assert_eq!(records.len(), 6);
+    let warnings = host.take_warnings();
+    assert!(
+        warnings
+            .iter()
+            .any(|w| w.contains("Carleton event pictures are missing")),
+        "{warnings:?}"
+    );
+}

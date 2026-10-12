@@ -108,6 +108,8 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
 | `html to-text` | string → string | Strips tags and decodes entities (`&amp;`, `&#8211;`); crate chosen in the plan |
 | `http get <url> [--raw]` | → any | Replaces the built-in: http(s) only, through the cache, with the size cap. JSON (by `Content-Type`) is parsed unless `--raw`; other bodies are text when UTF-8, else binary |
 | `pipe get <name> [args]` | → table | §5.5 |
+| `pipe warn <message>` | any → any | Reports a warning (stderr under `ppp run`) and passes its input on |
+| `query web` | string → any | nushell's own command from `nu_plugin_query`, run in-process (its work is a public function that needs no plugin connection); in stock `nu` it comes from that plugin |
 | `validate` | table → table | Returns its input unchanged, or fails with index and pointer |
 | `to pipes-json` | table → string | Canonical JSON, with time fields formatted by the schema |
 
@@ -266,6 +268,7 @@ Turning a source into events happens in three layers, each with one job:
    - turns `description_html` into `content: {type: html}` plus a plain-text `description` (via `html to-text`);
    - runs `html to-text` on short text fields (`summary`, `location.name`);
    - gives override rows their `<uid>_<instant>` id and `series`;
+   - percent-encodes non-ASCII characters in every URL (`url`, `links`, `images`, `online`), as the schema's `uri` format requires;
    - moves leftover columns to `extra`; for `from ics` rows, each unmapped property is kept under its lower-cased name, as a list when it repeats (e.g. several `ATTENDEE`s);
    - drops empty values (`drop-empty`).
 3. **The pipe file** fixes one site's quirks, such as Northfield's relative URLs or Carleton's HTML in a TEXT field.
@@ -285,7 +288,7 @@ Each lives in `pipes/`, declares `output: ["https://pipes.frogpond.tech/stdlib/c
 | Pipe | Source | What it proves |
 |---|---|---|
 | `campus-week` | St. Olaf ICS | TZID times, all-day dates, `GEO`, `CATEGORIES`, `expand rrule`, `during` |
-| `carleton-week` | Carleton ICS (2,392 events, 3.2 MB) | Floating times plus `X-WR-TIMEZONE`; HTML in `DESCRIPTION` (renamed to `description_html`); HTML-escaped URLs; the same event under several UIDs (`uniq-by summary start`) |
+| `carleton-week` | Carleton ICS (2,392 events, 3.2 MB) plus the calendar's HTML page (`--page`) | Floating times plus `X-WR-TIMEZONE`; HTML in `DESCRIPTION` (renamed to `description_html`); HTML-escaped URLs; the same event under several UIDs (`uniq-by summary start`); pictures, which only the page has, joined on the event code (`/_c/<code>` at the end of the description, `?eId=<code>` on the page) with `query web`. If the page fails, the events come without pictures and a `pipe warn` |
 | `northfield` | Northfield ICS (`catID=41`) | VTIMEZONE with nested RRULEs; `DTSTAMP` with a TZID; HTML and a trailing ` -` in `LOCATION`; a `URL` that points back at the feed (the event page is taken from the description instead) |
 | `stolaf-wp` | Tribe API | Paging through `next_rest_url`, failing past `--max-pages` rather than returning part of the calendar; date filters sent in the calendar's zone; venues, cost, organizers |
 | `presence` | Presence API | UTC instants with no `tz`; organizer as org plus contact person; cover photos (`--photos`) |
