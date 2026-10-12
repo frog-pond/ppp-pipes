@@ -110,7 +110,7 @@ fn pipes_that_cannot_load_exit_2() {
 #[test]
 #[ignore]
 fn campus_week_live() {
-    let out = ppp(&["run", "campus-week", "--within", "3day"]);
+    let out = ppp(&["run", "--no-cache", "campus-week", "--within", "3day"]);
     let events = records(&out);
     assert!(!events.is_empty());
     assert!(
@@ -143,4 +143,42 @@ fn warnings_are_printed_and_the_run_succeeds() {
     assert_eq!(records(&out).len(), 0);
     let stderr = text(&out.stderr);
     assert!(stderr.contains("old-helper is deprecated"), "{stderr}");
+}
+
+#[test]
+fn a_pipe_past_its_timeout_is_stopped() {
+    let started = std::time::Instant::now();
+    let out = ppp(&["run", "--timeout", "1", "fixtures/pipes/slow.nu"]);
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(text(&out.stdout), "");
+    assert_eq!(
+        text(&out.stderr),
+        "ppp: slow ran longer than 1s and was stopped\n"
+    );
+    assert!(started.elapsed() < std::time::Duration::from_secs(10));
+}
+
+#[test]
+fn pipe_get_finds_pipes_in_the_pipes_dir() {
+    let out = ppp(&["run", "--pipes-dir", "fixtures/pipes", "gets-two-events"]);
+    let events = records(&out);
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0]["summary"], "Got: Chess Club");
+}
+
+#[test]
+fn cache_dir_and_no_cache_conflict() {
+    let out = ppp(&[
+        "run",
+        "--no-cache",
+        "--cache-dir",
+        "x",
+        "fixtures/pipes/two-events.nu",
+    ]);
+    assert_eq!(out.status.code(), Some(2));
+    assert!(
+        text(&out.stderr).contains("cannot be used with"),
+        "{}",
+        text(&out.stderr)
+    );
 }

@@ -4014,6 +4014,7 @@ name = "ppp-cli"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "dirs 7.0.0",
  "ppp-core",
  "serde_json",
 ]
