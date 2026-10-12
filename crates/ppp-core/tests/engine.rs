@@ -1,10 +1,13 @@
 //! The sandboxed engine: evaluation, the embedded `ppp` module, and the
 //! command set.
 
+mod support;
+
 use std::path::Path;
 
 use nu_protocol::Value;
 use ppp_core::engine::Engine;
+use support::temp_dir;
 
 fn nuon(engine: &mut Engine, source: &str, input: Value) -> String {
     let out = engine.eval(source, input).unwrap();
@@ -146,5 +149,31 @@ fn the_same_source_can_run_twice() {
     for i in 0..3 {
         let out = engine.eval("$in | to nuon", Value::test_int(i)).unwrap();
         assert_eq!(out.coerce_into_string().unwrap(), i.to_string());
+    }
+}
+
+#[test]
+fn modules_cannot_be_loaded_from_disk() {
+    let dir = temp_dir("engine-disk-modules");
+    // A file that isn't nushell: a parse error would quote it.
+    let secret = dir.join("secret.nu");
+    std::fs::write(&secret, "the secret is 4321\n").unwrap();
+    // A file that is: loading it would run code from outside the pipe.
+    let module = dir.join("module.nu");
+    std::fs::write(&module, "export def leak [] { 'loaded' }\n").unwrap();
+    let relative = |path: &Path| path.strip_prefix("/").unwrap().display().to_string();
+    for path in [&secret, &module] {
+        for source in [
+            format!("use '{}'", path.display()),
+            format!("use '{}'", relative(path)),
+            format!("overlay use '{}'", path.display()),
+            format!("module '{}'", path.display()),
+        ] {
+            let err = Engine::new()
+                .eval(&source, Value::test_nothing())
+                .expect_err(&source);
+            assert!(!err.0.contains("4321"), "{source} showed the file:\n{err}");
+            assert!(err.0.contains("pipes can't load files"), "{source}: {err}");
+        }
     }
 }

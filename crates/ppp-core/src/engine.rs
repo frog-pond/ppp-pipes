@@ -13,7 +13,7 @@ use jiff::SignedDuration;
 use nu_engine::eval_block;
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet, VirtualPath};
-use nu_protocol::{PipelineData, Signals, Span, Value, format_cli_error};
+use nu_protocol::{PipelineData, Signals, Span, Value, VirtualPathId, format_cli_error};
 
 use crate::commands::{self, Context};
 use crate::host::Host;
@@ -51,9 +51,7 @@ impl Engine {
             let mut working_set = StateWorkingSet::new(&state);
             bind_data_commands(&mut working_set);
             commands::bind(&mut working_set, &context);
-            let file = working_set.add_file("ppp/mod.nu", PPP_MODULE.as_bytes());
-            let module_file =
-                working_set.add_virtual_path("ppp/mod.nu".into(), VirtualPath::File(file));
+            let module_file = add_virtual_file(&mut working_set, "ppp/mod.nu", PPP_MODULE);
             let _ = working_set.add_virtual_path("ppp".into(), VirtualPath::Dir(vec![module_file]));
             working_set.render()
         };
@@ -72,6 +70,17 @@ impl Engine {
             warnings: Vec::new(),
             context,
         }
+    }
+
+    /// Makes `source` the module that `use <name>` loads. Pipes can't load
+    /// modules from disk, so this is how a pipe's own file gets in.
+    pub fn add_module(&mut self, name: &str, source: &str) -> Result<(), EngineError> {
+        let mut working_set = StateWorkingSet::new(&self.state);
+        add_virtual_file(&mut working_set, name, source);
+        let delta = working_set.render();
+        self.state
+            .merge_delta(delta)
+            .map_err(|err| self.render(&err))
     }
 
     /// The host this engine shares with the rest of its run.
@@ -94,6 +103,20 @@ impl Engine {
             // that block comes back without its compiled form.
             let block =
                 nu_parser::parse_fresh(&mut working_set, Some("source"), source.as_bytes(), false);
+            // nushell's parser reads `use`d files straight from disk, and
+            // nothing turns that off. Refuse any file it read before its
+            // contents can show up in an error.
+            let first_new = self.state.num_files();
+            if let Some(file) = working_set
+                .files()
+                .skip(first_new)
+                .find(|file| &*file.name != "source")
+            {
+                return Err(EngineError(format!(
+                    "Error: pipes can't load files; `{}` is not one of the modules a pipe may use",
+                    file.name
+                )));
+            }
             if let Some(err) = working_set.parse_errors.first() {
                 return Err(EngineError(format_cli_error(None, &working_set, err, None)));
             }
@@ -145,6 +168,16 @@ impl Default for Engine {
     fn default() -> Self {
         Engine::new()
     }
+}
+
+/// Adds `contents` as a file that `use <name>` finds without touching disk.
+fn add_virtual_file(
+    working_set: &mut StateWorkingSet,
+    name: &str,
+    contents: &str,
+) -> VirtualPathId {
+    let file = working_set.add_file(name, contents.as_bytes());
+    working_set.add_virtual_path(name.into(), VirtualPath::File(file))
 }
 
 /// The nushell data commands a pipe may use: no externals, no filesystem,
