@@ -41,6 +41,7 @@ impl Default for HostConfig {
 pub struct Host {
     pub config: HostConfig,
     interrupt: Arc<AtomicBool>,
+    timed_out: AtomicBool,
     deadline: Mutex<Option<Instant>>,
     running: Mutex<Vec<String>>,
     warnings: Mutex<Vec<String>>,
@@ -60,26 +61,37 @@ impl Host {
         self.interrupt.clone()
     }
 
-    /// Whether a timeout has stopped this run.
+    /// Whether the interrupt flag is set: the running pipe must stop.
     pub fn interrupted(&self) -> bool {
         self.interrupt.load(Ordering::Relaxed)
     }
 
+    /// Whether the last run under `with_timeout` ran out of time.
+    pub fn timed_out(&self) -> bool {
+        self.timed_out.load(Ordering::Relaxed)
+    }
+
     /// Runs `work`, setting the interrupt flag if it takes longer than
     /// `limit`. Nushell checks the flag between steps, so a stuck pipe
-    /// stops with an "interrupted" error.
+    /// stops with an "interrupted" error. Once `work` returns the flag and
+    /// the deadline are cleared, so the host can run again.
     pub fn with_timeout<T>(&self, limit: Duration, work: impl FnOnce() -> T) -> T {
         *self.deadline.lock().expect("deadline lock") = Some(Instant::now() + limit);
         let (done, wait) = mpsc::channel::<()>();
         let flag = self.interrupt.clone();
         let watchdog = thread::spawn(move || {
-            if let Err(RecvTimeoutError::Timeout) = wait.recv_timeout(limit) {
+            let fired = matches!(wait.recv_timeout(limit), Err(RecvTimeoutError::Timeout));
+            if fired {
                 flag.store(true, Ordering::Relaxed);
             }
+            fired
         });
         let result = work();
         let _ = done.send(());
-        let _ = watchdog.join();
+        let fired = watchdog.join().expect("the watchdog does not panic");
+        self.timed_out.store(fired, Ordering::Relaxed);
+        self.interrupt.store(false, Ordering::Relaxed);
+        *self.deadline.lock().expect("deadline lock") = None;
         result
     }
 

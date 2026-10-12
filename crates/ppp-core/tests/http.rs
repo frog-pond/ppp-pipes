@@ -286,12 +286,10 @@ fn the_run_timeout_cuts_a_stuck_request_short() {
 fn nothing_is_fetched_after_the_run_timed_out() {
     let server = serve(vec![reply("200 OK", &[], "late")]);
     let host = Host::default();
-    host.with_timeout(std::time::Duration::from_millis(10), || {
-        std::thread::sleep(std::time::Duration::from_millis(100))
+    let result = host.with_timeout(std::time::Duration::from_millis(10), || {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        fetch(&host, &server.url, None)
     });
-    assert!(matches!(
-        fetch(&host, &server.url, None),
-        Err(FetchError::Network { .. })
-    ));
+    assert!(matches!(result, Err(FetchError::Network { .. })));
     assert!(server.requests.lock().unwrap().is_empty());
 }

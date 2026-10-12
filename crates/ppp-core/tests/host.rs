@@ -167,7 +167,7 @@ fn a_run_past_its_time_limit_stops() {
     let started = std::time::Instant::now();
     let result = shared.with_timeout(Duration::from_millis(200), || pipe.run(&Record::new()));
     assert!(matches!(result, Err(PipeError::Engine(_))), "{result:?}");
-    assert!(shared.interrupted());
+    assert!(shared.timed_out());
     assert!(started.elapsed() < Duration::from_secs(5));
 }
 
@@ -177,7 +177,18 @@ fn a_run_inside_its_time_limit_is_untouched() {
     let mut pipe = Pipe::load_with(&pipes_dir().join("two-events.nu"), shared.clone()).unwrap();
     let result = shared.with_timeout(Duration::from_secs(30), || pipe.run(&Record::new()));
     assert_eq!(result.unwrap().len(), 2);
-    assert!(!shared.interrupted());
+    assert!(!shared.timed_out());
+}
+
+#[test]
+fn a_host_runs_again_after_a_run_timed_out() {
+    let shared = host(None);
+    let mut slow = Pipe::load_with(&pipes_dir().join("slow.nu"), shared.clone()).unwrap();
+    let _ = shared.with_timeout(Duration::from_millis(200), || slow.run(&Record::new()));
+    let mut pipe = Pipe::load_with(&pipes_dir().join("two-events.nu"), shared.clone()).unwrap();
+    let result = shared.with_timeout(Duration::from_secs(30), || pipe.run(&Record::new()));
+    assert_eq!(result.unwrap().len(), 2);
+    assert!(!shared.timed_out());
 }
 
 #[test]

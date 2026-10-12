@@ -75,7 +75,7 @@ fn try_run(
         eprintln!("{warning}");
     }
     let records = records.map_err(|e| {
-        if host.interrupted() {
+        if host.timed_out() {
             format!(
                 "ppp: {} ran longer than {}s and was stopped",
                 loaded.info().name,
