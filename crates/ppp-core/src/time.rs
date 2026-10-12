@@ -38,3 +38,14 @@ pub fn format_local(ts: Timestamp, tz: &TimeZone) -> String {
 pub fn format_date(ts: Timestamp, tz: &TimeZone) -> String {
     ts.to_zoned(tz.clone()).strftime("%Y-%m-%d").to_string()
 }
+
+/// Converts a jiff zoned time to a nushell datetime with the same instant
+/// and the same UTC offset.
+pub fn to_nu(zoned: &jiff::Zoned) -> DateTime<FixedOffset> {
+    let ts = zoned.timestamp();
+    let offset = FixedOffset::east_opt(zoned.offset().seconds())
+        .expect("jiff offsets are under a day, inside chrono's range");
+    DateTime::from_timestamp(ts.as_second(), ts.subsec_nanosecond() as u32)
+        .expect("jiff timestamps are inside chrono's range")
+        .with_timezone(&offset)
+}
