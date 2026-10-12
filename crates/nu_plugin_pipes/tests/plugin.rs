@@ -121,3 +121,17 @@ fn validate_and_to_pipes_json() {
     .unwrap_err();
     assert!(err.contains("records are not valid"), "{err}");
 }
+
+#[test]
+fn query_html_queries_html() {
+    let out = eval(
+        &mut plugin(),
+        "query html --query 'li:first-child'",
+        Value::test_string("<ul><li>Coffee</li><li>Tea</li></ul>"),
+    )
+    .unwrap();
+    assert_eq!(
+        out,
+        Value::test_list(vec![Value::test_list(vec![Value::test_string("Coffee")])])
+    );
+}

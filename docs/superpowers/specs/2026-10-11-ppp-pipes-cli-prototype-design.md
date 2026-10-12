@@ -109,7 +109,7 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
 | `http get <url> [--raw]` | → any | Replaces the built-in: http(s) only, through the cache, with the size cap. JSON (by `Content-Type`) is parsed unless `--raw`; other bodies are text when UTF-8, else binary |
 | `pipe get <name> [args]` | → table | §5.5 |
 | `pipe warn <message>` | any → any | Reports a warning (stderr under `ppp run`) and passes its input on |
-| `query web` | string → any | nushell's own command from `nu_plugin_query`, run in-process (its work is a public function that needs no plugin connection); in stock `nu` it comes from that plugin |
+| `query html` | string → any | CSS selector queries, with the same flags and results as nushell's `query web`. Adapted from `nu_plugin_query` (MIT) rather than depending on it, because that crate's `webpage` dependency links libcurl and OpenSSL. `--inspect` output goes where warnings go |
 | `validate` | table → table | Returns its input unchanged, or fails with index and pointer |
 | `to pipes-json` | table → string | Canonical JSON, with time fields formatted by the schema |
 
@@ -139,17 +139,16 @@ ppp validate <file.json | file.jsonl>
 
 ### 4.5 `nu_plugin_pipes`
 
-A standard nushell plugin that offers every command in §4.2 except `query web`, which comes from nushell's own `nu_plugin_query`. In stock `nu`:
+A standard nushell plugin that offers every command in §4.2. In stock `nu`:
 
 ```nu
 plugin add ~/.cargo/bin/nu_plugin_pipes; plugin use pipes
-plugin add ~/.cargo/bin/nu_plugin_query; plugin use query  # for pipes that read HTML, such as carleton-week
 use ppp *
 http get $url | from ics | expand rrule --from (date now) --until ((date now) + 1wk) | into event | validate
 pipe get campus-week {within: 3day}
 ```
 
-Pipe files run unchanged: `use pipes/campus-week.nu; campus-week --within 3day`. Without `nu_plugin_query`, a pipe that uses `query web` fails to load: stock `nu` has a built-in `query` command, so the parser reports "Extra positional argument" rather than an unknown command.
+Pipe files run unchanged: `use pipes/campus-week.nu; campus-week --within 3day`.
 
 Outside the runner there is no sandbox, and `http get` is nushell's own, without our cache. `pipe get` is the exception: it runs the full sandboxed engine inside the plugin process, with the cache (in the user cache directory), validation and a 60-second limit. In the plugin it takes `--pipes-dir`, relative to nushell's current directory (default `./pipes`).
 
@@ -289,7 +288,7 @@ Each lives in `pipes/`, declares `output: ["https://pipes.frogpond.tech/stdlib/c
 | Pipe | Source | What it proves |
 |---|---|---|
 | `campus-week` | St. Olaf ICS | TZID times, all-day dates, `GEO`, `CATEGORIES`, `expand rrule`, `during` |
-| `carleton-week` | Carleton ICS (2,392 events, 3.2 MB) plus the calendar's HTML page (`--page`) | Floating times plus `X-WR-TIMEZONE`; HTML in `DESCRIPTION` (renamed to `description_html`); HTML-escaped URLs; the same event under several UIDs (`uniq-by summary start`); pictures, which only the page has, joined on the event code (`/_c/<code>` at the end of the description, `?eId=<code>` on the page) with `query web`. If the page fails, the events come without pictures and a `pipe warn` |
+| `carleton-week` | Carleton ICS (2,392 events, 3.2 MB) plus the calendar's HTML page (`--page`) | Floating times plus `X-WR-TIMEZONE`; HTML in `DESCRIPTION` (renamed to `description_html`); HTML-escaped URLs; the same event under several UIDs (`uniq-by summary start`); pictures, which only the page has, joined on the event code (`/_c/<code>` at the end of the description, `?eId=<code>` on the page) with `query html`. If the page fails, the events come without pictures and a `pipe warn` |
 | `northfield` | Northfield ICS (`catID=41`) | VTIMEZONE with nested RRULEs; `DTSTAMP` with a TZID; HTML and a trailing ` -` in `LOCATION`; a `URL` that points back at the feed (the event page is taken from the description instead) |
 | `stolaf-wp` | Tribe API | Paging through `next_rest_url`, failing past `--max-pages` rather than returning part of the calendar; date filters sent in the calendar's zone; venues, cost, organizers |
 | `presence` | Presence API | UTC instants with no `tz`; organizer as org plus contact person; cover photos (`--photos`) |

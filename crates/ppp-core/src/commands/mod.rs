@@ -16,7 +16,7 @@ mod html_to_text;
 mod http_get;
 pub mod pipe_get;
 mod pipe_warn;
-mod query_web;
+mod query_html;
 pub mod to_pipes_json;
 pub mod validate;
 
@@ -26,7 +26,7 @@ pub use html_to_text::HtmlToText;
 pub use http_get::HttpGet;
 pub use pipe_get::PipeGet;
 pub use pipe_warn::PipeWarn;
-pub use query_web::QueryWeb;
+pub use query_html::QueryHtml;
 pub use to_pipes_json::ToPipesJson;
 pub use validate::Validate;
 
@@ -43,7 +43,6 @@ pub fn bind(working_set: &mut StateWorkingSet, context: &Context) {
     working_set.add_decl(Box::new(ExpandRrule));
     working_set.add_decl(Box::new(FromIcs));
     working_set.add_decl(Box::new(HtmlToText));
-    working_set.add_decl(Box::new(QueryWeb));
     working_set.add_decl(Box::new(HttpGet {
         context: context.clone(),
     }));
@@ -51,6 +50,9 @@ pub fn bind(working_set: &mut StateWorkingSet, context: &Context) {
         context: context.clone(),
     }));
     working_set.add_decl(Box::new(PipeWarn {
+        context: context.clone(),
+    }));
+    working_set.add_decl(Box::new(QueryHtml {
         context: context.clone(),
     }));
     working_set.add_decl(Box::new(ToPipesJson {

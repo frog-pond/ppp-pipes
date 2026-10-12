@@ -208,7 +208,8 @@ fn carleton_week_resolves_relative_pictures_and_skips_inline_ones() {
         .collect();
     assert!(
         urls.iter()
-            .any(|u| u.starts_with("http://") && u.ends_with("/uploads/sites/513/2026/09/CACTS-map.jpg")),
+            .any(|u| u.starts_with("http://")
+                && u.ends_with("/uploads/sites/513/2026/09/CACTS-map.jpg")),
         "{urls:?}"
     );
     assert!(urls.iter().all(|u| !u.starts_with("data:")), "{urls:?}");
@@ -249,8 +250,10 @@ fn all_campus_keeps_going_when_a_source_fails() {
         "--count: int = 2          # How many events to return",
         "--count: int = 2\n    --within: duration\n    --from: datetime",
     );
-    let failing = read("fixtures/pipes/fails.nu")
-        .replace("export def main []", "export def main [--within: duration, --from: datetime]");
+    let failing = read("fixtures/pipes/fails.nu").replace(
+        "export def main []",
+        "export def main [--within: duration, --from: datetime]",
+    );
     for name in ["stolaf-wp", "campus-week", "carleton-week", "northfield"] {
         std::fs::write(dir.join(format!("{name}.nu")), &working).unwrap();
     }

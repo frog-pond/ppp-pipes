@@ -47,12 +47,12 @@ def event-images [page: string, start: datetime, until: datetime]: nothing -> re
     let url = $page | url parse | merge {params: {start_date: (do $day $start), end_date: (do $day $until)}} | url join
     try {
         http get --raw $url
-        | query web --query '.event_list--item picture a[href*="eId="]' --as-html
+        | query html --query '.event_list--item picture a[href*="eId="]' --as-html
         | each {|link|
-            let code = $link | query web --query a --attribute href | get 0? | default ""
+            let code = $link | query html --query a --attribute href | get 0? | default ""
                 | parse -r 'eId=(?<code>[A-Za-z0-9]+)' | get code.0?
             # The page shows a 100x100 crop; without the query the CDN serves the original.
-            let image = $link | query web --query img --attribute src | get 0?
+            let image = $link | query html --query img --attribute src | get 0?
                 | if $in != null { split row '?' | first | url parse --base $url | reject params }
                 # Inline (`data:`) placeholders are not pictures an app can link to.
                 | if $in != null and $in.scheme in [http https] { url join }

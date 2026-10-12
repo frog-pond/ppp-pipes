@@ -1,0 +1,674 @@
+//! The work behind `query html`: CSS selector queries on HTML, with the
+//! same flags and results as nushell's `query web`.
+//!
+//! Adapted from `nu_plugin_query` 0.116.1 (`src/query_web.rs` and
+//! `src/web_tables.rs`), so pipes get `query web`'s behavior without that
+//! crate's `webpage` dependency, which links libcurl and OpenSSL. The
+//! changes: no plugin types, and `--inspect` reports through a callback
+//! instead of printing (and no longer fails on pages under 2,048 bytes).
+//!
+//! MIT License
+//!
+//! Copyright (c) 2019 - 2023 The Nushell Project Developers
+//!
+//! Permission is hereby granted, free of charge, to any person obtaining a copy
+//! of this software and associated documentation files (the "Software"), to deal
+//! in the Software without restriction, including without limitation the rights
+//! to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//! copies of the Software, and to permit persons to whom the Software is
+//! furnished to do so, subject to the following conditions:
+//!
+//! The above copyright notice and this permission notice shall be included in all
+//! copies or substantial portions of the Software.
+//!
+//! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//! FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//! AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//! LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//! OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//! SOFTWARE.
+
+mod web_tables;
+
+use nu_plugin_protocol::EvaluatedCall;
+use nu_protocol::{LabeledError, Record, Span, Spanned, Value};
+use scraper::{Html, Selector as ScraperSelector};
+use web_tables::WebTable;
+
+/// Where `--inspect` sends what it finds.
+pub type Report<'a> = &'a mut dyn FnMut(String);
+
+pub struct Selector {
+    pub query: Spanned<String>,
+    pub as_html: bool,
+    pub attribute: Value,
+    pub as_table: Value,
+    pub inspect: Spanned<bool>,
+    pub document: bool,
+}
+
+pub fn parse_selector_params(
+    call: &EvaluatedCall,
+    input: &Value,
+    report: Report,
+) -> Result<Value, LabeledError> {
+    let head = call.head;
+    let query: Option<Spanned<String>> = call.get_flag("query")?;
+    let as_html = call.has_flag("as-html")?;
+    let attribute = call
+        .get_flag("attribute")?
+        .unwrap_or_else(|| Value::nothing(head));
+    let as_table: Value = call
+        .get_flag("as-table")?
+        .unwrap_or_else(|| Value::nothing(head));
+
+    let inspect = call.has_flag("inspect")?;
+    let inspect_span = call.get_flag_span("inspect").unwrap_or(call.head);
+    let document = call.has_flag("document")?;
+
+    let selector = Selector {
+        query: query.unwrap_or(Spanned {
+            span: call.head,
+            item: "".to_owned(),
+        }),
+        as_html,
+        attribute,
+        as_table,
+        inspect: Spanned {
+            item: inspect,
+            span: inspect_span,
+        },
+        document,
+    };
+
+    let span = input.span();
+    match input {
+        Value::String { val, .. } => begin_selector_query(val.to_string(), selector, span, report),
+        _ => Err(LabeledError::new("Requires text input")
+            .with_label("expected text from pipeline", span)),
+    }
+}
+
+fn begin_selector_query(
+    input_html: String,
+    selector: Selector,
+    span: Span,
+    report: Report,
+) -> Result<Value, LabeledError> {
+    if let Value::List { .. } = selector.as_table {
+        retrieve_tables(
+            input_html.as_str(),
+            &selector.as_table,
+            selector.inspect.item.then_some(report),
+            span,
+        )
+    } else if selector.attribute.is_empty() {
+        execute_selector_query(
+            input_html.as_str(),
+            selector.query,
+            selector.as_html,
+            selector.inspect,
+            selector.document,
+            span,
+        )
+    } else if let Value::List { .. } = selector.attribute {
+        execute_selector_query_with_attributes(
+            input_html.as_str(),
+            selector.query,
+            &selector.attribute,
+            selector.inspect,
+            selector.document,
+            span,
+        )
+    } else {
+        execute_selector_query_with_attribute(
+            input_html.as_str(),
+            selector.query,
+            selector.attribute.as_str().unwrap_or(""),
+            selector.inspect,
+            selector.document,
+            span,
+        )
+    }
+}
+
+pub fn retrieve_tables(
+    input_string: &str,
+    columns: &Value,
+    mut inspect: Option<Report>,
+    span: Span,
+) -> Result<Value, LabeledError> {
+    let html = input_string;
+    let mut cols: Vec<String> = Vec::new();
+    if let Value::List { vals, .. } = &columns {
+        for x in vals {
+            if let Value::String { val, .. } = x {
+                cols.push(val.to_string())
+            }
+        }
+    }
+
+    if let Some(report) = inspect.as_mut() {
+        report(format!("Passed in Column Headers = {:?}", cols));
+        let start: String = html.chars().take(2048).collect();
+        report(format!("First 2048 HTML chars = {start}"));
+    }
+
+    let tables = match WebTable::find_by_headers(html, &cols, &mut inspect) {
+        Some(t) => {
+            if let Some(report) = inspect.as_mut() {
+                report(format!("Table Found = {:#?}", t));
+            }
+            t
+        }
+        None => vec![WebTable::empty()],
+    };
+
+    if tables.len() == 1 {
+        return Ok(retrieve_table(
+            tables.into_iter().next().ok_or_else(|| {
+                LabeledError::new("Cannot retrieve table")
+                    .with_label("Error retrieving table.", span)
+                    .with_help("No table found.")
+            })?,
+            columns,
+            span,
+        ));
+    }
+
+    let vals = tables
+        .into_iter()
+        .map(move |table| retrieve_table(table, columns, span))
+        .collect();
+
+    Ok(Value::list(vals, span))
+}
+
+fn retrieve_table(mut table: WebTable, columns: &Value, span: Span) -> Value {
+    let mut cols: Vec<String> = Vec::new();
+    if let Value::List { vals, .. } = &columns {
+        for x in vals {
+            // TODO Find a way to get the Config object here
+            if let Value::String { val, .. } = x {
+                cols.push(val.to_string())
+            }
+        }
+    }
+
+    if cols.is_empty() && !table.headers().is_empty() {
+        for col in table.headers().keys() {
+            cols.push(col.to_string());
+        }
+    }
+
+    // We provided columns but the table has no headers, so we'll just make a single column table
+    if !cols.is_empty() && table.headers().is_empty() {
+        let mut record = Record::new();
+        for col in &cols {
+            record.push(
+                col.clone(),
+                Value::string("error: no data found (column name may be incorrect)", span),
+            );
+        }
+        return Value::record(record, span);
+    }
+
+    let mut table_out = Vec::new();
+    // sometimes there are tables where the first column is the headers, kind of like
+    // a table has ben rotated ccw 90 degrees, in these cases all columns will be missing
+    // we keep track of this with this variable so we can deal with it later
+    let mut at_least_one_row_filled = false;
+    // if columns are still empty, the table has no headers, so generate
+    // `columnN` names and emit one record per row
+    if cols.is_empty() {
+        at_least_one_row_filled = true;
+        for row in table.iter().filter(|item| !item.is_empty()) {
+            let mut record = Record::new();
+            for (counter, cell) in row.iter().enumerate() {
+                record.push(format!("column{counter}"), Value::string(cell, span));
+            }
+            table_out.push(Value::record(record, span))
+        }
+    } else {
+        for row in &table {
+            let record = cols
+                .iter()
+                .map(|col| {
+                    let val = row
+                        .get(col)
+                        .unwrap_or(&format!("Missing column: '{}'", col))
+                        .to_string();
+
+                    if !at_least_one_row_filled && val != format!("Missing column: '{}'", col) {
+                        at_least_one_row_filled = true;
+                    }
+                    (col.clone(), Value::string(val, span))
+                })
+                .collect();
+            table_out.push(Value::record(record, span))
+        }
+    }
+    if !at_least_one_row_filled {
+        let mut data2 = Vec::new();
+        for x in &table.data {
+            data2.push(x.join(", "));
+        }
+        table.data = vec![data2];
+        return retrieve_table(table, columns, span);
+    }
+    // table_out
+
+    Value::list(table_out, span)
+}
+
+fn execute_selector_query_with_attribute(
+    input_string: &str,
+    query_string: Spanned<String>,
+    attribute: &str,
+    inspect: Spanned<bool>,
+    document: bool,
+    span: Span,
+) -> Result<Value, LabeledError> {
+    let doc = parse_html(input_string, document);
+
+    let vals: Vec<Value> = doc
+        .select(&fallible_css(query_string, inspect)?)
+        .map(|selection| {
+            Value::string(
+                selection.value().attr(attribute).unwrap_or("").to_string(),
+                span,
+            )
+        })
+        .collect();
+    Ok(Value::list(vals, span))
+}
+
+fn execute_selector_query_with_attributes(
+    input_string: &str,
+    query_string: Spanned<String>,
+    attributes: &Value,
+    inspect: Spanned<bool>,
+    document: bool,
+    span: Span,
+) -> Result<Value, LabeledError> {
+    let doc = parse_html(input_string, document);
+
+    let mut attrs: Vec<String> = Vec::new();
+    if let Value::List { vals, .. } = &attributes {
+        for x in vals {
+            if let Value::String { val, .. } = x {
+                attrs.push(val.to_string())
+            }
+        }
+    }
+
+    let vals: Vec<Value> = doc
+        .select(&fallible_css(query_string, inspect)?)
+        .map(|selection| {
+            let mut record = Record::new();
+            for attr in &attrs {
+                record.push(
+                    attr.to_string(),
+                    Value::string(selection.value().attr(attr).unwrap_or("").to_string(), span),
+                );
+            }
+            Value::record(record, span)
+        })
+        .collect();
+    Ok(Value::list(vals, span))
+}
+
+fn execute_selector_query(
+    input_string: &str,
+    query_string: Spanned<String>,
+    as_html: bool,
+    inspect: Spanned<bool>,
+    document: bool,
+    span: Span,
+) -> Result<Value, LabeledError> {
+    let doc = parse_html(input_string, document);
+
+    let vals: Vec<Value> = match as_html {
+        true => doc
+            .select(&fallible_css(query_string, inspect)?)
+            .map(|selection| Value::string(selection.html(), span))
+            .collect(),
+        false => doc
+            .select(&fallible_css(query_string, inspect)?)
+            .map(|selection| {
+                Value::list(
+                    selection
+                        .text()
+                        .map(|text| Value::string(text, span))
+                        .collect(),
+                    span,
+                )
+            })
+            .collect(),
+    };
+
+    Ok(Value::list(vals, span))
+}
+
+/// Parse input HTML either as a fragment or as a full document depending on
+/// the `document` flag.  `scraper` drops `<html>`, `<head>` and `<body>` when
+/// parsing a fragment, which is why we need the option.
+fn parse_html(input: &str, document: bool) -> Html {
+    if document {
+        Html::parse_document(input)
+    } else {
+        Html::parse_fragment(input)
+    }
+}
+
+fn fallible_css(
+    selector: Spanned<String>,
+    inspect: Spanned<bool>,
+) -> Result<ScraperSelector, LabeledError> {
+    if inspect.item {
+        ScraperSelector::parse("html").map_err(|e| {
+            LabeledError::new("CSS query parse error")
+                .with_label(e.to_string(), inspect.span)
+                .with_help(
+                    "cannot parse query `html` as a valid CSS selector, possibly an internal error",
+                )
+        })
+    } else {
+        ScraperSelector::parse(&selector.item).map_err(|e| {
+            LabeledError::new("CSS query parse error")
+                .with_label(e.to_string(), selector.span)
+                .with_help("cannot parse query as a valid CSS selector")
+        })
+    }
+}
+
+pub fn css(selector: &str, inspect: bool) -> ScraperSelector {
+    if inspect {
+        ScraperSelector::parse("html").expect("Error unwrapping the default scraperselector")
+    } else {
+        ScraperSelector::parse(selector).expect("Error unwrapping scraperselector::parse")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SIMPLE_LIST: &str = r#"
+         <ul>
+             <li>Coffee</li>
+             <li>Tea</li>
+             <li>Milk</li>
+         </ul>
+     "#;
+
+    const NESTED_TEXT: &str = r#"<p>Hello there, <span style="color: red;">World</span></p>"#;
+    const MULTIPLE_ATTRIBUTES: &str = r#"
+        <a href="https://example.org" target="_blank">Example</a>
+        <a href="https://example.com" target="_self">Example</a>
+    "#;
+
+    const TABLE_NO_HEADERS: &str = r#"
+        <table>
+            <tr><td>row1-a</td><td>row1-b</td></tr>
+            <tr><td>row2-a</td><td>row2-b</td></tr>
+        </table>
+    "#;
+
+    const TABLE_NO_HEADERS_ONE_ROW: &str = r#"
+        <table>
+            <tr><td>row1-a</td><td>row1-b</td></tr>
+        </table>
+    "#;
+
+    const TABLE_WITH_HEADERS: &str = r#"
+        <table>
+            <tr><th>name</th><th>type</th></tr>
+            <tr><td>row1-a</td><td>dir</td></tr>
+            <tr><td>row2-a</td><td>file</td></tr>
+        </table>
+    "#;
+
+    fn null_spanned<T: ToOwned + ?Sized>(input: &T) -> Spanned<T::Owned> {
+        Spanned {
+            item: input.to_owned(),
+            span: Span::test_data(),
+        }
+    }
+
+    #[test]
+    fn test_first_child_is_not_empty() {
+        assert!(
+            !execute_selector_query(
+                SIMPLE_LIST,
+                null_spanned("li:first-child"),
+                false,
+                null_spanned(&false),
+                /* document = */ false,
+                Span::test_data()
+            )
+            .unwrap()
+            .is_empty()
+        )
+    }
+
+    #[test]
+    fn test_first_child() {
+        let item = execute_selector_query(
+            SIMPLE_LIST,
+            null_spanned("li:first-child"),
+            false,
+            null_spanned(&false),
+            /* document = */ false,
+            Span::test_data(),
+        )
+        .unwrap();
+        let config = nu_protocol::Config::default();
+        let out = item.to_expanded_string("\n", &config);
+        assert_eq!("[[Coffee]]".to_string(), out)
+    }
+
+    #[test]
+    fn test_nested_text_nodes() {
+        let item = execute_selector_query(
+            NESTED_TEXT,
+            null_spanned("p:first-child"),
+            false,
+            null_spanned(&false),
+            /* document = */ false,
+            Span::test_data(),
+        )
+        .unwrap();
+        let out = item
+            .into_list()
+            .unwrap()
+            .into_iter()
+            .map(|matches| {
+                matches
+                    .into_list()
+                    .unwrap()
+                    .into_iter()
+                    .map(|text_nodes| text_nodes.coerce_into_string().unwrap())
+                    .collect::<Vec<String>>()
+            })
+            .collect::<Vec<Vec<String>>>();
+
+        assert_eq!(
+            out,
+            vec![vec!["Hello there, ".to_string(), "World".to_string()]],
+        );
+    }
+
+    #[test]
+    fn test_body_fragment_default() {
+        // under fragment parsing the <body> element is removed, so nothing
+        // should be returned
+        let html = "<html><head><title>x</title></head><body><p>foo</p></body></html>";
+        let result = execute_selector_query(
+            html,
+            null_spanned("body"),
+            false,
+            null_spanned(&false),
+            /* document = */ false,
+            Span::test_data(),
+        )
+        .unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_body_with_document_flag() {
+        let html = "<html><head><title>x</title></head><body><p>foo</p></body></html>";
+        let result = execute_selector_query(
+            html,
+            null_spanned("body"),
+            false,
+            null_spanned(&false),
+            /* document = */ true,
+            Span::test_data(),
+        )
+        .unwrap();
+        assert!(!result.is_empty());
+        let config = nu_protocol::Config::default();
+        let out = result.to_expanded_string("\n", &config);
+        assert_eq!("[[foo]]".to_string(), out);
+    }
+
+    fn table_to_records(value: Value) -> Vec<Vec<(String, String)>> {
+        value
+            .into_list()
+            .unwrap()
+            .into_iter()
+            .map(|row| {
+                row.into_record()
+                    .unwrap()
+                    .into_iter()
+                    .map(|(col, cell)| (col, cell.coerce_into_string().unwrap()))
+                    .collect()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn test_table_without_headers_multiple_rows() {
+        let item = retrieve_tables(
+            TABLE_NO_HEADERS,
+            &Value::list(Vec::new(), Span::test_data()),
+            None,
+            Span::test_data(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            table_to_records(item),
+            vec![
+                vec![
+                    ("column0".to_string(), "row1-a".to_string()),
+                    ("column1".to_string(), "row1-b".to_string())
+                ],
+                vec![
+                    ("column0".to_string(), "row2-a".to_string()),
+                    ("column1".to_string(), "row2-b".to_string())
+                ]
+            ]
+        )
+    }
+
+    #[test]
+    fn test_table_without_headers_one_row() {
+        let item = retrieve_tables(
+            TABLE_NO_HEADERS_ONE_ROW,
+            &Value::list(Vec::new(), Span::test_data()),
+            None,
+            Span::test_data(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            table_to_records(item),
+            vec![vec![
+                ("column0".to_string(), "row1-a".to_string()),
+                ("column1".to_string(), "row1-b".to_string())
+            ]]
+        )
+    }
+
+    #[test]
+    fn test_table_with_headers() {
+        let item = retrieve_tables(
+            TABLE_WITH_HEADERS,
+            &Value::list(Vec::new(), Span::test_data()),
+            None,
+            Span::test_data(),
+        )
+        .unwrap();
+
+        // header names are collected from a HashMap, so column order is not
+        // guaranteed; sort each record's fields before comparing
+        let mut out = table_to_records(item);
+        for row in out.iter_mut() {
+            row.sort();
+        }
+
+        assert_eq!(
+            out,
+            vec![
+                vec![
+                    ("name".to_string(), "row1-a".to_string()),
+                    ("type".to_string(), "dir".to_string())
+                ],
+                vec![
+                    ("name".to_string(), "row2-a".to_string()),
+                    ("type".to_string(), "file".to_string())
+                ]
+            ]
+        )
+    }
+
+    #[test]
+    fn test_multiple_attributes() {
+        let item = execute_selector_query_with_attributes(
+            MULTIPLE_ATTRIBUTES,
+            null_spanned("a"),
+            &Value::list(
+                vec![
+                    Value::string("href".to_string(), Span::test_data()),
+                    Value::string("target".to_string(), Span::test_data()),
+                ],
+                Span::test_data(),
+            ),
+            null_spanned(&false),
+            /* document = */ false,
+            Span::test_data(),
+        )
+        .unwrap();
+        let out = item
+            .into_list()
+            .unwrap()
+            .into_iter()
+            .map(|matches| {
+                matches
+                    .into_record()
+                    .unwrap()
+                    .into_iter()
+                    .map(|(key, value)| (key, value.coerce_into_string().unwrap()))
+                    .collect::<Vec<(String, String)>>()
+            })
+            .collect::<Vec<Vec<(String, String)>>>();
+
+        assert_eq!(
+            out,
+            vec![
+                vec![
+                    ("href".to_string(), "https://example.org".to_string()),
+                    ("target".to_string(), "_blank".to_string())
+                ],
+                vec![
+                    ("href".to_string(), "https://example.com".to_string()),
+                    ("target".to_string(), "_self".to_string())
+                ]
+            ]
+        )
+    }
+}

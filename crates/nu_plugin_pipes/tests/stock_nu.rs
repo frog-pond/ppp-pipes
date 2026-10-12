@@ -77,6 +77,17 @@ fn our_commands_work_in_stock_nu() {
 
 #[test]
 #[ignore]
+fn pipes_that_query_html_load_without_nu_plugin_query() {
+    // Stock nu's own `query` would make `query web` a parse error here.
+    let out = nu("use pipes/carleton-week.nu
+        open --raw fixtures/html/carleton-calendar.html
+        | query html --query 'picture img' --attribute src
+        | length");
+    assert_eq!(out.trim(), "3");
+}
+
+#[test]
+#[ignore]
 fn pipe_files_run_unchanged() {
     let repo = repo().display().to_string();
     let out = nu(&format!(
