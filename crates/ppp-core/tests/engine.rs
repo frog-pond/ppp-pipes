@@ -134,12 +134,10 @@ fn parse_warnings_are_kept() {
 #[test]
 fn the_same_source_can_run_twice() {
     // nushell's parser caches blocks by source; a cached block came back
-    // without its compiled form.
+    // without its compiled form, so the second run failed.
     let mut engine = Engine::new();
     for i in 0..3 {
-        assert_eq!(
-            nuon(&mut engine, "$in + 1", Value::test_int(i)),
-            (i + 1).to_string()
-        );
+        let out = engine.eval("$in | to nuon", Value::test_int(i)).unwrap();
+        assert_eq!(out.coerce_into_string().unwrap(), i.to_string());
     }
 }
