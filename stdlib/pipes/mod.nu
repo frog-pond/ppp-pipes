@@ -9,11 +9,9 @@ const MAPPED_PROPS = [
 
 # Remove the fields whose value is null, "", [] or {}.
 export def drop-empty []: record -> record {
-    items {|key, value|
-        if $value in [null "" [] {}] { null } else { {key: $key, value: $value} }
-    }
-    | compact
-    | reduce --fold {} {|field, acc| $acc | insert $field.key $field.value }
+    items {|key, value| [$key $value] }
+    | where {|pair| $pair.1 not-in [null "" [] {}] }
+    | into record
 }
 
 # Keep the rows whose time span overlaps the window [from, until). A row runs
@@ -59,9 +57,9 @@ def event-from-row [source: any, tz: any]: record -> record {
     let leftovers = $row.props? | default [] | where name not-in $MAPPED_PROPS | group-by name
         | items {|name, props|
             let values = $props | get value
-            {key: ($name | str lowercase), value: (if ($values | length) == 1 { $values.0 } else { $values })}
+            [($name | str lowercase) (if ($values | length) == 1 { $values.0 } else { $values })]
         }
-        | reduce --fold {} {|field, acc| $acc | insert $field.key $field.value }
+        | into record
     let extra = $leftovers
         | merge (if $has_web_url or $row.url? == null { {} } else { {url: $row.url} })
         | merge (if $has_location or $row.geo? == null { {} } else { {geo: $row.geo} })
