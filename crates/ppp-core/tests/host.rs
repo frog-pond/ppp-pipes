@@ -153,6 +153,22 @@ fn pipe_get_loops_are_errors() {
 }
 
 #[test]
+fn a_pipe_may_get_another_file_with_its_own_name() {
+    // `elsewhere/two-events.nu` gets `two-events`, which is the pipes
+    // directory's file of that name, not itself.
+    let dir = temp_dir("same-name-elsewhere");
+    let outer = dir.join("two-events.nu");
+    std::fs::write(
+        &outer,
+        "export const pipe = { output: [\"https://pipes.frogpond.tech/stdlib/calendar/1#event\"] }\n\
+         export def main []: nothing -> table { pipe get two-events }\n",
+    )
+    .unwrap();
+    let mut pipe = Pipe::load_with(&outer, host(None)).unwrap();
+    assert_eq!(pipe.run(&Record::new()).unwrap().len(), 2);
+}
+
+#[test]
 fn pipe_get_checks_the_other_pipes_records() {
     let mut pipe = Pipe::load_with(&pipes_dir().join("gets-invalid.nu"), host(None)).unwrap();
     let err = pipe.run(&Record::new()).unwrap_err().to_string();
