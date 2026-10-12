@@ -179,3 +179,18 @@ fn a_run_inside_its_time_limit_is_untouched() {
     assert_eq!(result.unwrap().len(), 2);
     assert!(!shared.interrupted());
 }
+
+#[test]
+fn pipe_get_names_stay_in_the_pipes_dir() {
+    let mut engine = Engine::with_host(host(None));
+    for name in ["../outside/escape", "/etc/hosts", "two-events.nu", "a b"] {
+        let err = engine
+            .eval(&format!("pipe get {name:?}"), Value::test_nothing())
+            .unwrap_err();
+        assert!(
+            err.0
+                .contains("pipe names may use only letters, digits, `-` and `_`"),
+            "{name}: {err}"
+        );
+    }
+}

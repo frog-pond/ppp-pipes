@@ -4,7 +4,7 @@ use nu_engine::command_prelude::*;
 use nu_protocol::shell_error::generic::GenericError;
 
 use super::Context;
-use crate::pipe::{Pipe, check_records};
+use crate::pipe::{Pipe, check_records, is_pipe_name};
 
 #[derive(Clone)]
 pub struct PipeGet {
@@ -58,6 +58,11 @@ impl Command for PipeGet {
                 name.span,
             ))
         };
+        if !is_pipe_name(&name.item) {
+            return Err(fail(
+                "pipe names may use only letters, digits, `-` and `_`".into(),
+            ));
+        }
         let host = &self.context.host;
         let path = host.config.pipes_dir.join(format!("{}.nu", name.item));
         let mut pipe = Pipe::load_with(&path, host.clone()).map_err(|e| fail(e.to_string()))?;

@@ -90,8 +90,7 @@ impl Pipe {
             .to_string();
         // The name becomes the command to call and `$<name>.pipe`, both
         // spliced into nushell source, so it must be a plain identifier.
-        let plain = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_';
-        if name.is_empty() || !name.chars().all(plain) {
+        if !is_pipe_name(&name) {
             return Err(metadata(format!(
                 "pipe file names may use only letters, digits, `-` and `_`, not \"{name}\""
             )));
@@ -344,6 +343,16 @@ fn read_params(command: &Value) -> Result<Vec<Param>, String> {
         }
     }
     Ok(params)
+}
+
+/// Whether `name` can name a pipe: letters, digits, `-` and `_` only. A
+/// pipe's name is spliced into nushell source and joined onto the pipes
+/// directory, so nothing else is allowed.
+pub fn is_pipe_name(name: &str) -> bool {
+    !name.is_empty()
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
 /// A nushell double-quoted string literal for `text`.
