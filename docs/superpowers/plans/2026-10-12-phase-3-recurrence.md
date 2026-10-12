@@ -26,7 +26,7 @@ Wren was away and asked for the phases to continue; these are mine to review.
 2. **Override rows pass through untouched;** `expand rrule` only drops the generated occurrence an override replaces. Moving an occurrence into or out of the window is then `during`'s job, and `expand rrule` keeps its one rule: rows without a rule pass through.
 3. **Occurrences carry `recurrence_id`** (their original start). `into event` already turns that into `<uid>_<instant>` + `series`, so expanded, unexpanded and Google-pre-expanded feeds all produce the same ids.
 4. **DTSTART always counts as an occurrence** (RFC 5545 §3.8.5.3), even when the rule wouldn't produce it. The `rrule` crate skips it, so `recur.rs` adds it as an RDATE.
-5. **Rules are strict.** A floating `UNTIL` with a zoned `DTSTART` is an error (RFC 5545 requires UTC), in keeping with Wren's preference for strict time parsing. If real feeds turn out to be sloppy here, a lenient mode is a small change.
+5. ~~**Rules are strict.** A floating `UNTIL` with a zoned `DTSTART` is an error.~~ Wrong, found in review: RFC 5545 *requires* a DATE or floating `UNTIL` when DTSTART is a DATE or floating. Such an `UNTIL` is now read in the series' zone (see the spec, §5.4).
 6. **The cap counts only occurrences in the window,** checked against the crate: a daily series running since 1990 asked for one week returns 7.
 7. **Zone-less recurring all-day events expand in UTC**, which keeps their dates (spec §5.3).
 

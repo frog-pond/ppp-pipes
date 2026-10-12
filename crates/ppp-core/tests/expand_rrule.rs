@@ -234,3 +234,25 @@ fn an_all_day_series_with_a_date_until() {
         .collect();
     assert_eq!(starts, ["2026-11-05", "2026-11-12", "2026-11-19"]);
 }
+
+#[test]
+fn all_day_occurrences_last_whole_days_across_dst() {
+    // 2026-11-01 is 25 hours long in Chicago; each occurrence still lasts one day.
+    for first in ["20261025", "20261101"] {
+        let ics = format!(
+            "BEGIN:VCALENDAR\nX-WR-TIMEZONE:America/Chicago\nBEGIN:VEVENT\nUID:d@example.edu\nSUMMARY:Sunday Market\nDTSTART;VALUE=DATE:{first}\nRRULE:FREQ=WEEKLY;COUNT=3\nDURATION:P1D\nEND:VEVENT\nEND:VCALENDAR\n"
+        );
+        let events = expanded(
+            &ics,
+            "2026-10-01T00:00:00-05:00",
+            "2027-01-01T00:00:00-06:00",
+        );
+        for event in &events {
+            let start =
+                jiff::civil::Date::strptime("%Y-%m-%d", event["start"].as_str().unwrap()).unwrap();
+            let end =
+                jiff::civil::Date::strptime("%Y-%m-%d", event["end"].as_str().unwrap()).unwrap();
+            assert_eq!(start.tomorrow().unwrap(), end, "{first}: {event}");
+        }
+    }
+}

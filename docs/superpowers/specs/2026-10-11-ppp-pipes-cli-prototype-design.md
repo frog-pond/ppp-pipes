@@ -211,7 +211,8 @@ Inside a pipe, times are nushell `datetime` values, so `where start < (date now)
 - DTSTART always counts as an occurrence, even when the rule would skip it (RFC 5545 §3.8.5.3).
 - An occurrence that has an override row in the input (same `uid`, `recurrence_id` equal to the occurrence's start) is left out, since the override row stands in for it. An override that moves an occurrence into or out of the window is handled by whatever filters the rows afterwards, usually `during`.
 - Expansion runs in wall time in the row's `tz` (UTC when it has none), so an 18:00 event stays at 18:00 across DST. A wall time that falls in a spring-forward gap moves later by the gap, as RFC 5545 says. All-day events stay all-day.
-- Rules are read strictly: an `UNTIL` must be UTC when `DTSTART` has a zone, as RFC 5545 requires.
+- `UNTIL` without a `Z` (a DATE for all-day series, a floating time for floating ones, as RFC 5545 requires) is read in the series' zone; a DATE `UNTIL` covers its whole day. An `UNTIL` before `DTSTART` leaves just DTSTART.
+- An all-day occurrence lasts the same number of calendar days as its master, even across a DST change.
 - It fails after 10,000 occurrences of one series inside the window. Occurrences before the window don't count, so a long-running series is fine.
 - It only expands. To filter by window, use `during`.
 

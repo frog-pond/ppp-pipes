@@ -123,9 +123,21 @@ pub fn expand(
             .and_then(|v| timestamp(&v))
             .ok_or_else(|| fail("a recurring event needs a start".into()))?
             .to_zoned(zone.clone());
-        let end = row.get_data_by_key("end").and_then(|v| timestamp(&v));
-        let length = end.map_or(SignedDuration::ZERO, |end| {
-            end.duration_since(start.timestamp())
+        let end = row
+            .get_data_by_key("end")
+            .and_then(|v| timestamp(&v))
+            .map(|end| end.to_zoned(zone.clone()));
+        let length = end.as_ref().map_or(SignedDuration::ZERO, |end| {
+            end.timestamp().duration_since(start.timestamp())
+        });
+        // An all-day event lasts whole days, which are not all 24 hours long.
+        let all_day = matches!(
+            row.get_data_by_key("all_day"),
+            Some(Value::Bool { val: true, .. })
+        );
+        let occurrence_length = end.as_ref().map(|end| match all_day {
+            true => Length::Days(jiff::Span::new().days((end.date() - start.date()).get_days())),
+            false => Length::Exact(length),
         });
         let in_zone = |key: &str| -> Vec<Zoned> {
             match row.get_data_by_key(key) {
@@ -149,8 +161,7 @@ pub fn expand(
             occurrences(&series, length, from, until).map_err(|e| fail(e.to_string()))?
         {
             if !overrides.contains(&(uid.clone(), occurrence.timestamp())) {
-                let length = end.map(|_| length);
-                out.push(occurrence_row(&row, &occurrence, length, span));
+                out.push(occurrence_row(&row, &occurrence, occurrence_length, span));
             }
         }
     }
@@ -176,20 +187,25 @@ fn is_recurring(row: &Value) -> bool {
     text(row, "rrule").is_some() || has_rdates
 }
 
+/// How far an occurrence's end is from its start.
+#[derive(Clone, Copy)]
+enum Length {
+    Exact(SignedDuration),
+    /// Calendar days, for all-day events.
+    Days(jiff::Span),
+}
+
 /// The master row with its times moved to one occurrence.
-fn occurrence_row(
-    master: &Value,
-    start: &Zoned,
-    length: Option<SignedDuration>,
-    span: Span,
-) -> Value {
+fn occurrence_row(master: &Value, start: &Zoned, length: Option<Length>, span: Span) -> Value {
     let mut record = master.as_record().cloned().unwrap_or_default();
     let at = Value::date(time::to_nu(start), span);
     record.insert("start", at.clone());
     if let Some(length) = length {
-        let end = start
-            .checked_add(length)
-            .expect("an occurrence's end is in range");
+        let end = match length {
+            Length::Exact(duration) => start.checked_add(duration),
+            Length::Days(days) => start.checked_add(days),
+        }
+        .expect("an occurrence's end is in range");
         record.insert("end", Value::date(time::to_nu(&end), span));
     }
     record.insert("recurrence_id", at);
