@@ -74,6 +74,9 @@ fn our_commands_do_not_shadow_nushell_builtins() {
     let full = nu_command::add_shell_command_context(nu_cmd_lang::create_default_context());
     for name in [
         "from ics",
+        "from tribe-events",
+        "from presence",
+        "html to-text",
         "expand rrule",
         "into event",
         "drop-empty",
