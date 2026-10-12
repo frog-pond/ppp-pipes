@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 chrono.workspace = true
+chrono-tz.workspace = true
 jiff.workspace = true
 jsonschema.workspace = true
 nu-cmd-lang.workspace = true
@@ -12,5 +13,6 @@ nu-command.workspace = true
 nu-engine.workspace = true
 nu-parser.workspace = true
 nu-protocol.workspace = true
+rrule.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
