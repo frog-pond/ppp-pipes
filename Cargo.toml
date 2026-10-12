@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/ppp-core", "crates/ppp-cli"]
+members = ["crates/ppp-core", "crates/ppp-cli", "crates/nu_plugin_pipes"]
 
 [workspace.package]
 edition = "2024"
@@ -19,6 +19,8 @@ nu-cmd-lang = "=0.116.1"
 nu-command = { version = "=0.116.1", default-features = false, features = ["os", "network", "rustls-tls"] }
 nu-engine = "=0.116.1"
 nu-parser = "=0.116.1"
+nu-plugin = "=0.116.1"
+nu-plugin-test-support = "=0.116.1"
 nu-protocol = { version = "=0.116.1", default-features = false }
 rrule = "0.14"
 serde = { version = "1", features = ["derive"] }
