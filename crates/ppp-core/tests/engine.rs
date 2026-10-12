@@ -72,7 +72,7 @@ fn externals_and_filesystem_commands_are_not_registered() {
 #[test]
 fn our_commands_do_not_shadow_nushell_builtins() {
     let full = nu_command::add_shell_command_context(nu_cmd_lang::create_default_context());
-    for name in ["from ics", "into event", "drop-empty"] {
+    for name in ["from ics", "into event", "drop-empty", "during"] {
         assert!(
             full.find_decl(name.as_bytes(), &[]).is_none(),
             "nushell already has {name}"

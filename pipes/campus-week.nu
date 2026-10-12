@@ -22,6 +22,6 @@ export def main [
     let now = date now
     http get --raw $SOURCE
     | from ics
-    | where start >= $now and start < ($now + ($days * 1day))
+    | during $now ($now + ($days * 1day))
     | into event --source $SOURCE
 }

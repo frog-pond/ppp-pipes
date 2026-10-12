@@ -16,6 +16,19 @@ export def drop-empty []: record -> record {
     | reduce --fold {} {|field, acc| $acc | insert $field.key $field.value }
 }
 
+# Keep the rows whose time span overlaps the window [from, until). A row runs
+# from `start` to `end`; a row with no `end` is a moment at `start`. Events
+# already under way when the window opens are kept.
+export def during [from: datetime, until: datetime]: table -> table {
+    where {|row|
+        if $row.end? == null {
+            $row.start >= $from and $row.start < $until
+        } else {
+            $row.start < $until and $row.end > $from
+        }
+    }
+}
+
 # Turn rows from `from ics` into stdlib `event` records.
 #
 # An ORGANIZER becomes a person when its CUTYPE is INDIVIDUAL and an

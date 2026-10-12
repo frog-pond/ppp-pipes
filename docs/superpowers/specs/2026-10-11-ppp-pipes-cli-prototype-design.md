@@ -261,6 +261,8 @@ Turning a source into events happens in three layers, each with one job:
 
 The rule: if a second source would hit a problem, the fix goes in layer 1 or 2. If only one site has it, the fix goes in the pipe.
 
+`during <from> <until>` keeps rows whose `start`–`end` span overlaps the window, so events already under way are kept; a row with no `end` is a moment at `start`. Pipes use it for "what's on this week" windows.
+
 `drop-empty` removes `null`, `""`, `[]` and `{}`. This covers Tribe's `venue: []` and `image: false`, which `from tribe-events` turns into `null` first.
 
 ---
