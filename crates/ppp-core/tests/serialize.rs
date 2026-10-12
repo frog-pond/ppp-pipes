@@ -231,3 +231,30 @@ fn datetimes_past_year_9999_are_an_error() {
         }
     );
 }
+
+#[test]
+fn durations_are_whole_seconds() {
+    let registry = Registry::stdlib().unwrap();
+    let json = to_json(&event(record! {
+        "start" => date("2026-10-22T16:00:00Z"),
+        "duration" => Value::test_duration(90 * 60 * 1_000_000_000 + 500_000_000),
+    }))
+    .unwrap();
+    assert_eq!(json["duration"], "PT1H30M");
+    assert_eq!(registry.validate(0, &json), vec![]);
+}
+
+#[test]
+fn negative_durations_are_an_error() {
+    let err = to_json(&event(record! {
+        "start" => date("2026-10-22T16:00:00Z"),
+        "duration" => Value::test_duration(-60 * 60 * 1_000_000_000),
+    }))
+    .unwrap_err();
+    assert_eq!(
+        err,
+        SerializeError::NegativeDuration {
+            pointer: "/duration".into()
+        }
+    );
+}

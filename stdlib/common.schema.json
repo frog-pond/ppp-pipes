@@ -53,7 +53,7 @@
     "tz": { "type": "string", "format": "iana-tz" },
     "duration": {
       "type": "string",
-      "pattern": "^-?P",
+      "pattern": "^P",
       "format": "duration"
     },
     "rrule": {

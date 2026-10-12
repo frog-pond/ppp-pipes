@@ -24,6 +24,8 @@ pub enum SerializeError {
     UnknownTimeZone { pointer: String, tz: String },
     #[error("{pointer}: datetime is outside the years -9999 to 9999")]
     OutOfRange { pointer: String },
+    #[error("{pointer}: durations must not be negative")]
+    NegativeDuration { pointer: String },
 }
 
 /// Serializes one record, formatting the fields in `time_fields`.
@@ -72,7 +74,14 @@ impl Context {
             }
             Value::String { val, .. } | Value::Glob { val, .. } => Json::String(val.clone()),
             Value::Duration { val, .. } => {
-                Json::String(jiff::SignedDuration::from_nanos(*val).to_string())
+                if *val < 0 {
+                    return Err(SerializeError::NegativeDuration {
+                        pointer: pointer.clone(),
+                    });
+                }
+                // Whole seconds, like datetimes (see `time`).
+                let seconds = *val / 1_000_000_000;
+                Json::String(jiff::SignedDuration::from_secs(seconds).to_string())
             }
             Value::Date { val, .. } => {
                 let ts = time::timestamp(val).map_err(|_| SerializeError::OutOfRange {
