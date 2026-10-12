@@ -1,0 +1,28 @@
+// A work calendar with attendees, time-zone overrides, and tentative events.
+calendar "Product Team" tz="America/New_York" {
+    event "c1f6a3e2-5b7d-4e0a-9f3c-1d2e3f4a5b6c" {
+        summary "Quarterly planning"
+        start "2026-11-02T10:00:00" tz="Europe/London"
+        end "2026-11-02T15:00:00" tz="Europe/London"
+        status tentative
+        location "London office, 4th floor"
+        attendance hybrid
+        online "https://meet.example.com/q4-planning"
+        organizer "Priya Shah" email="priya@example.com" phone="+44 20 7946 0000"
+        attendee "Priya Shah" email="priya@example.com" role=chair rsvp=accepted
+        attendee "Sam Okafor" email="sam@example.com" role=required rsvp=needs-action
+        attendee "Lee Wong" role=optional rsvp=declined
+        reminder "P1D" method=email
+        reminder "PT15M"
+    }
+
+    event "standup-2026@product.example.com" {
+        summary "Daily standup"
+        start "2026-10-12T09:30:00-04:00"
+        duration "PT15M"
+        attendance online
+        online "https://meet.example.com/standup" platform=meet
+        rrule "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR"
+        exdate "2026-11-26T09:30:00-05:00" "2026-11-27T09:30:00-05:00"
+    }
+}

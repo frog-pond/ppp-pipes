@@ -1,0 +1,8 @@
+// The smallest valid document: a calendar with a time zone and one event
+// that has only the required summary and start.
+calendar "Personal" tz="UTC" {
+    event "dentist-2026-10-20" {
+        summary "Dentist"
+        start "2026-10-20T08:15:00Z"
+    }
+}

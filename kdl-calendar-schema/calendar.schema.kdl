@@ -1,0 +1,361 @@
+// KDL Schema for an event calendar app.
+// Written against KDL Schema 1.0.0 (https://github.com/kdl-org/kdl/blob/main/SCHEMA-SPEC.md)
+// using KDL v2 syntax, like the spec's own meta-schema.
+//
+// Event fields follow the iCalendar VEVENT shape so they line up with the
+// columns produced by nushell-ics/ics.nu:
+//   uid -> event's value       summary, description, url, status, rrule -> same-named nodes
+//   start, end, all_day -> start / end (all-day=#true)   location, geo -> location { geo }
+//   categories -> category     organizer -> organizer
+//
+// Since 0.2.0, also covers the fields of The Events Calendar's WordPress REST
+// feed (tribe/events/v1), e.g. https://wp.stolaf.edu/calendar/wp-json/tribe/events/v1/events:
+//   website -> link rel=...    cost/cost_details -> cost     tags -> keyword
+//   excerpt -> excerpt         date_utc/modified_utc -> created/modified
+//   venue -> calendar-level venue + location venue=...       image -> image
+//   is_virtual/virtual_url -> attendance/online            featured/hide_from_listings -> event featured=/hidden=
+document {
+    info {
+        title "Event Calendar" lang=en
+        description "Calendars of events for an event calendar app, modeled on iCalendar VEVENT." lang=en
+        version "0.2.0"
+        published "2026-10-11"
+        modified "2026-10-11"
+    }
+
+    definitions {
+        // A calendar date ("2026-10-14") or a local/UTC/offset date-time
+        // ("2026-10-14T19:30:00", "2026-10-14T19:30:00Z", "2026-10-14T19:30:00-05:00").
+        value id=when description="An ISO 8601 date or date-time" {
+            min 1
+            max 1
+            type string
+            format date-time date
+            pattern #"^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:\d{2})?)?$"#
+        }
+        prop tz id=tz description="IANA time zone for a floating date-time; overrides the calendar's default" {
+            type string
+            pattern #"^[A-Za-z_]+(/[A-Za-z0-9_+-]+)*$"#
+        }
+        prop email id=email description="Contact email address" {
+            type string
+            format email
+        }
+        value id=web-url description="An http(s) URL" {
+            min 1
+            max 1
+            type string
+            format url
+            pattern #"^https?://"#
+        }
+        prop url id=url-prop description="Website" {
+            type string
+            format url
+            pattern #"^https?://"#
+        }
+        prop phone id=phone description="Phone number, free-form" {
+            type string
+            pattern #"^[0-9+()./ x-]{3,}$"#
+        }
+        node geo id=geo description="Coordinates of a place" {
+            max 1
+            prop lat description="Latitude in decimal degrees" {
+                required #true
+                type number
+                ">=" -90
+                "<=" 90
+            }
+            prop lon description="Longitude in decimal degrees" {
+                required #true
+                type number
+                ">=" -180
+                "<=" 180
+            }
+        }
+        value id=text description="A single non-empty string" {
+            min 1
+            max 1
+            type string
+            min-length 1
+        }
+    }
+
+    node calendar description="A named collection of events" {
+        min 1
+        max 1
+        value description="Display name of the calendar" ref=#"[id="text"]"#
+        prop tz description="Default IANA time zone for floating date-times" {
+            required #true
+            type string
+            pattern #"^[A-Za-z_]+(/[A-Za-z0-9_+-]+)*$"#
+        }
+        prop color description="Display color as #rrggbb" {
+            type string
+            pattern #"^#[0-9a-fA-F]{6}$"#
+        }
+        prop source description="Where the events came from, e.g. an .ics feed" {
+            type string
+            format url
+        }
+        children {
+            node description description="What this calendar is for" {
+                max 1
+                value ref=#"[id="text"]"#
+            }
+
+            node venue description="A place events can share; events point at it with location venue=..." {
+                value description="Venue id, unique within the calendar" ref=#"[id="text"]"#
+                children {
+                    node name description="Display name" {
+                        min 1
+                        max 1
+                        value ref=#"[id="text"]"#
+                    }
+                    node address description="Street address, one line per value" {
+                        max 1
+                        value {
+                            min 1
+                            type string
+                            min-length 1
+                        }
+                    }
+                    node locality description="City or town" {
+                        max 1
+                        value ref=#"[id="text"]"#
+                    }
+                    node region description="State, province or region" {
+                        max 1
+                        value ref=#"[id="text"]"#
+                    }
+                    node postcode {
+                        max 1
+                        value ref=#"[id="text"]"#
+                    }
+                    node country description="ISO 3166-1 alpha-2 country code" {
+                        max 1
+                        value {
+                            min 1
+                            max 1
+                            type string
+                            format country-2
+                            pattern #"^[A-Z]{2}$"#
+                        }
+                    }
+                    node phone {
+                        max 1
+                        value {
+                            min 1
+                            max 1
+                            type string
+                            pattern #"^[0-9+()./ x-]{3,}$"#
+                        }
+                    }
+                    node url description="Venue website" {
+                        max 1
+                        value ref=#"[id="web-url"]"#
+                    }
+                    node ref=#"[id="geo"]"#
+                }
+            }
+
+            node event id=event description="A single calendar event (iCalendar VEVENT)" {
+                value description="Globally unique event id (iCalendar UID)" ref=#"[id="text"]"#
+                prop featured description="Highlight this event in listings" {
+                    type boolean
+                }
+                prop hidden description="Keep this event out of listings; it is still reachable directly" {
+                    type boolean
+                }
+                children {
+                    node summary description="Event title" {
+                        min 1
+                        max 1
+                        value ref=#"[id="text"]"#
+                    }
+                    node start description="When the event begins" {
+                        min 1
+                        max 1
+                        value ref=#"[id="when"]"#
+                        prop ref=#"[id="tz"]"#
+                        prop all-day description="Dates are whole days, with no time of day" {
+                            type boolean
+                        }
+                    }
+                    node end description="When the event ends (exclusive, like DTEND)" {
+                        max 1
+                        value ref=#"[id="when"]"#
+                        prop ref=#"[id="tz"]"#
+                    }
+                    node duration description="Length of the event, in place of end (like DURATION)" {
+                        max 1
+                        value {
+                            min 1
+                            max 1
+                            type string
+                            format duration
+                            pattern #"^P(\d+W|(\d+D)?(T(\d+H)?(\d+M)?(\d+S)?)?)$"#
+                        }
+                    }
+                    node status description="Confirmation status" {
+                        max 1
+                        value {
+                            min 1
+                            max 1
+                            type string
+                            enum tentative confirmed cancelled
+                        }
+                    }
+                    node location description="Where the event happens: free text, a shared venue, or both" {
+                        max 1
+                        value description="Free-text location, or the room within the venue" {
+                            max 1
+                            type string
+                            min-length 1
+                        }
+                        prop venue description="Id of a venue node in this calendar" {
+                            type string
+                            min-length 1
+                        }
+                        children {
+                            node ref=#"[id="geo"]"#
+                        }
+                    }
+                    node attendance description="How people attend (schema.org eventAttendanceMode)" {
+                        max 1
+                        value {
+                            min 1
+                            max 1
+                            type string
+                            enum in-person online hybrid
+                        }
+                    }
+                    node online description="Where to join an online or hybrid event" {
+                        max 1
+                        value ref=#"[id="web-url"]"#
+                        prop platform description="e.g. zoom, teams, youtube" {
+                            type string
+                        }
+                    }
+                    node excerpt description="One- or two-sentence blurb for list views (plain text)" {
+                        max 1
+                        value ref=#"[id="text"]"#
+                    }
+                    node description description="Long-form details (plain text)" {
+                        max 1
+                        value ref=#"[id="text"]"#
+                    }
+                    node url description="Link to the event's own page" {
+                        max 1
+                        value ref=#"[id="web-url"]"#
+                    }
+                    node link description="Other links: tickets, registration, more info" {
+                        value ref=#"[id="web-url"]"#
+                        prop rel description="What the link is for" {
+                            required #true
+                            type string
+                            enum tickets registration info livestream other
+                        }
+                        prop title description="Link text" {
+                            type string
+                        }
+                    }
+                    node image description="Picture for the event" {
+                        value ref=#"[id="web-url"]"#
+                        prop alt description="Alt text" {
+                            type string
+                        }
+                    }
+                    node cost description="Price, or a low and high price; or free" {
+                        max 1
+                        value description="free, or one or two amounts" {
+                            min 1
+                            max 2
+                            type number string
+                            pattern "^free$"
+                            ">=" 0
+                        }
+                        prop currency description="ISO 4217 code; needed for amounts" {
+                            type string
+                            format currency
+                            pattern #"^[A-Z]{3}$"#
+                        }
+                        prop note description="Anything else, like 'students free'" {
+                            type string
+                        }
+                    }
+                    node category description="One or more categories, like CATEGORIES" {
+                        value {
+                            min 1
+                            type string
+                            min-length 1
+                        }
+                    }
+                    node keyword description="Free-form tags, finer-grained than categories" {
+                        value {
+                            min 1
+                            type string
+                            min-length 1
+                        }
+                    }
+                    node organizer description="Who is running the event" {
+                        value ref=#"[id="text"]"#
+                        prop ref=#"[id="email"]"#
+                        prop ref=#"[id="phone"]"#
+                        prop ref=#"[id="url-prop"]"#
+                    }
+                    node attendee description="Someone invited to the event" {
+                        value ref=#"[id="text"]"#
+                        prop ref=#"[id="email"]"#
+                        prop role {
+                            type string
+                            enum chair required optional
+                        }
+                        prop rsvp description="Response to the invitation" {
+                            type string
+                            enum needs-action accepted declined tentative
+                        }
+                    }
+                    node rrule description="Recurrence rule, kept as an RFC 5545 RRULE string" {
+                        max 1
+                        value {
+                            min 1
+                            max 1
+                            type string
+                            pattern #"^FREQ=(SECONDLY|MINUTELY|HOURLY|DAILY|WEEKLY|MONTHLY|YEARLY)(;[A-Z]+=[^;]+)*$"#
+                        }
+                    }
+                    node exdate description="Occurrences of a recurring event that are skipped" {
+                        value description="One or more dates or date-times" {
+                            min 1
+                            type string
+                            format date-time date
+                            pattern #"^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:\d{2})?)?$"#
+                        }
+                        prop ref=#"[id="tz"]"#
+                    }
+                    node created description="When the event was first published (UTC, like CREATED)" {
+                        max 1
+                        value ref=#"[id="when"]"#
+                    }
+                    node modified description="When the event last changed (UTC, like LAST-MODIFIED)" {
+                        max 1
+                        value ref=#"[id="when"]"#
+                    }
+                    node reminder description="Alert before the event starts" {
+                        value description="How long before start, as an ISO 8601 duration" {
+                            min 1
+                            max 1
+                            type string
+                            format duration
+                            pattern #"^P(\d+W|(\d+D)?(T(\d+H)?(\d+M)?(\d+S)?)?)$"#
+                        }
+                        prop method {
+                            type string
+                            enum display email
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

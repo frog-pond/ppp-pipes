@@ -1,0 +1,66 @@
+// A small campus calendar: timed, all-day, recurring, and cancelled events.
+calendar "Campus Events" tz="America/Chicago" color="#e5a823" source="https://www.stolaf.edu/apps/calendar/ical.cfm" {
+    description "Concerts, lectures, and student events"
+
+    venue boe-chapel {
+        name "Boe Memorial Chapel"
+        address "1520 St. Olaf Avenue"
+        locality "Northfield"
+        region "MN"
+        postcode "55057"
+        country "US"
+        geo lat=44.4614 lon=-93.1822
+    }
+
+    event "20261014-orchestra@calendar.example.edu" featured=#true {
+        summary "Fall Orchestra Concert"
+        start "2026-10-14T19:30:00"
+        end "2026-10-14T21:00:00"
+        status confirmed
+        location venue=boe-chapel
+        attendance hybrid
+        online "https://www.example.edu/live/orchestra" platform=youtube
+        excerpt "The orchestra opens its season with Dvořák's Eighth."
+        description "The orchestra opens its season with Dvořák's Symphony No. 8.\nFree and open to the public."
+        url "https://www.example.edu/events/fall-orchestra"
+        link "https://tickets.example.edu/orchestra" rel=tickets title="Reserve seats"
+        image "https://www.example.edu/img/orchestra.jpg" alt="The orchestra on stage in Boe Chapel"
+        cost free note="Tickets required"
+        category "Music" "Concert"
+        keyword "Orchestra" "Dvořák"
+        organizer "Music Department" email="music@example.edu" phone="507-786-3180" url="https://www.example.edu/music/"
+        created "2026-08-06T18:11:07Z"
+        modified "2026-09-02T15:53:15Z"
+        reminder "PT1H" method=display
+    }
+
+    event "20261018-family-weekend@calendar.example.edu" {
+        summary "Family Weekend"
+        start "2026-10-17" all-day=#true
+        end "2026-10-19"
+        status confirmed
+        location "Campus-wide"
+        category "Community"
+    }
+
+    event "weekly-chess@calendar.example.edu" {
+        summary "Chess Club"
+        cost 5 10 currency=USD note="Dues per semester; first visit free"
+        start "2026-09-08T18:00:00"
+        duration "PT2H"
+        location "Buntrock Commons, Room 143"
+        category "Clubs"
+        rrule "FREQ=WEEKLY;BYDAY=TU;UNTIL=20261215T235959Z"
+        exdate "2026-11-24T18:00:00"
+    }
+
+    event "20261022-lecture@calendar.example.edu" {
+        summary "Guest Lecture: Pipelines Everywhere"
+        start "2026-10-22T16:00:00Z"
+        end "2026-10-22T17:15:00Z"
+        status cancelled
+        location "Regents Hall 150"
+        description "Cancelled: the speaker's flight was grounded. A new date will be announced."
+        organizer "Computer Science"
+    }
+}
