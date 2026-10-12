@@ -178,7 +178,7 @@ A port of `ics.nu`. It keeps the same columns (`summary`, `start`, `end`, `all_d
 
 - `tz`: the zone each event's times belong to;
 - `rdates`: a list of `{start, end}` records. `end` is set for a PERIOD value (`20261014T090000/PT8H` or `…/20261014T170000`), and `expand rrule` gives that occurrence the period's end instead of the event's usual length;
-- `exdates`: a list of datetimes;
+- `exdates`: a list of datetimes. RFC 5545 doesn't allow a DATE `EXDATE` on a timed series, but feeds write one to drop that day's occurrence, so `from ics` reads it as the series' start time on that date;
 - `recurrence_id`: set on override VEVENTs, which are returned as their own rows.
 
 It handles CRLF and LF line endings, folded lines, quoted parameters, TEXT escapes, comma-separated lists, `DURATION` in place of `DTEND`, and `VALUE=DATE`. It reads only VEVENTs. VTIMEZONE blocks and their nested RRULEs never become events.
