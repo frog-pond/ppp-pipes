@@ -64,6 +64,14 @@ impl Pipe {
             .and_then(|s| s.to_str())
             .ok_or_else(|| metadata("file name is not valid UTF-8".into()))?
             .to_string();
+        // The name becomes the command to call and `$<name>.pipe`, both
+        // spliced into nushell source, so it must be a plain identifier.
+        let plain = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_';
+        if name.is_empty() || !name.chars().all(plain) {
+            return Err(metadata(format!(
+                "pipe file names may use only letters, digits, `-` and `_`, not \"{name}\""
+            )));
+        }
         let mut engine = Engine::new();
         engine.eval(
             &format!("use {}", nu_string(&full.to_string_lossy())),

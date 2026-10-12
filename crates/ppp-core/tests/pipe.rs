@@ -169,3 +169,24 @@ fn paths_with_spaces_and_quotes_load() {
     let mut pipe = Pipe::load(&copy).unwrap();
     assert_eq!(pipe.run(&Record::new()).unwrap().len(), 2);
 }
+
+#[test]
+fn file_names_must_be_command_names() {
+    // The file name becomes the command's name and `$<name>.pipe`.
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("odd-names");
+    std::fs::create_dir_all(&dir).unwrap();
+    for stem in ["events.v2", "week (copy)", "it's", "a;b", "my pipe"] {
+        let copy = dir.join(format!("{stem}.nu"));
+        std::fs::copy(pipe_path("two-events.nu"), &copy).unwrap();
+        let err = match Pipe::load(&copy) {
+            Err(err) => err.to_string(),
+            Ok(_) => panic!("{stem} loaded"),
+        };
+        assert!(
+            err.ends_with(&format!(
+                "pipe file names may use only letters, digits, `-` and `_`, not \"{stem}\""
+            )),
+            "{err}"
+        );
+    }
+}
