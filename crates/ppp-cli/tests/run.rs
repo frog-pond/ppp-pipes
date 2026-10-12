@@ -60,25 +60,24 @@ fn passes_flags_to_the_pipe() {
 }
 
 #[test]
-fn flag_errors_exit_2_and_list_the_flags() {
-    let unknown = ppp(&["run", "fixtures/pipes/two-events.nu", "--days", "3"]);
-    assert_eq!(unknown.status.code(), Some(2));
-    assert_eq!(
-        text(&unknown.stderr),
-        "ppp: two-events has no flag --days; two-events takes: --count <int>, --prefix <string>, --loud\n"
-    );
-
-    let bad = ppp(&["run", "fixtures/pipes/two-events.nu", "--count", "two"]);
-    assert_eq!(bad.status.code(), Some(2));
-    assert_eq!(text(&bad.stderr), "ppp: --count expects int, got \"two\"\n");
-
-    let missing = ppp(&["run", "fixtures/pipes/two-events.nu", "--count"]);
-    assert_eq!(missing.status.code(), Some(2));
-    assert_eq!(text(&missing.stderr), "ppp: --count needs a value\n");
-
-    let positional = ppp(&["run", "fixtures/pipes/two-events.nu", "3"]);
-    assert_eq!(positional.status.code(), Some(2));
-    assert!(text(&positional.stderr).starts_with("ppp: unexpected argument \"3\""));
+fn nushell_reports_flag_errors_and_they_exit_2() {
+    for (args, code) in [
+        (vec!["--days", "3"], "nu::parser::unknown_flag"),
+        (vec!["--count", "two"], "nu::parser::parse_mismatch"),
+        (vec!["--count"], "nu::parser::missing_flag_param"),
+        (vec!["3"], "nu::parser::extra_positional"),
+    ] {
+        let mut all = vec!["run", "fixtures/pipes/two-events.nu"];
+        all.extend(&args);
+        let out = ppp(&all);
+        assert_eq!(out.status.code(), Some(2), "{args:?}");
+        assert_eq!(text(&out.stdout), "", "{args:?}");
+        assert!(
+            text(&out.stderr).contains(code),
+            "{args:?}: {}",
+            text(&out.stderr)
+        );
+    }
 }
 
 #[test]
@@ -133,13 +132,9 @@ fn runtime_errors_exit_2_with_the_diagnostic() {
 }
 
 #[test]
-fn switches_take_no_value() {
+fn a_switch_set_to_false_is_off() {
     let out = ppp(&["run", "fixtures/pipes/two-events.nu", "--loud=false"]);
-    assert_eq!(out.status.code(), Some(2));
-    assert_eq!(
-        text(&out.stderr),
-        "ppp: --loud is a switch and takes no value\n"
-    );
+    assert_eq!(records(&out)[0]["summary"], "Chess Club");
 }
 
 #[test]

@@ -128,7 +128,7 @@ ppp validate <file.json | file.jsonl>
 ```
 
 - `<pipe>` is a name, looked up as `<pipes-dir>/<name>.nu` (default `./pipes`), or a path.
-- `run` passes any remaining arguments to `main` as flags: `--flag value`, `--flag=value`, or a bare `--switch`. Values are typed by the flag's declared type (`string`, `int`, `float`, `number`, `bool`); other types can't be given on the command line yet. An unknown flag, a missing value or a bad value is an error that lists the pipe's flags. `ppp run`'s own options (`--pipes-dir`) go before the pipe name, since everything after it belongs to the pipe.
+- `run` passes any remaining arguments to `main` exactly as `nu <pipe>.nu <args>` would: each is quoted as needed (`nu_parser::escape_for_script_arg`) and nushell's parser checks them against `main`'s signature, so every flag type works and errors are nushell's own (unknown flag, type mismatch, missing value). Embedders don't go through this; they pass typed values. `ppp run`'s own options (`--pipes-dir`) go before the pipe name, since everything after it belongs to the pipe.
 - `info` prints the `PipeInfo`. This is the metadata a UI will later turn into a form.
 - `validate` checks a JSON array or JSONL file against the stdlib.
 

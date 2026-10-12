@@ -75,12 +75,12 @@ impl Pipe {
         let mut engine = Engine::new();
         engine.eval(
             &format!("use {}", nu_string(&full.to_string_lossy())),
-            Value::test_nothing(),
+            Value::nothing(Span::unknown()),
         )?;
 
         let found = engine.eval(
             &format!("scope commands | where name == {} | select description extra_description signatures", nu_string(&name)),
-            Value::test_nothing(),
+            Value::nothing(Span::unknown()),
         )?;
         let command = found
             .as_list()
@@ -99,7 +99,7 @@ impl Pipe {
         let output = engine
             .eval(
                 &format!("{constant}.output? | default []"),
-                Value::test_nothing(),
+                Value::nothing(Span::unknown()),
             )
             .map_err(|_| metadata("the file has no `export const pipe = {...}`".into()))?;
         let output = output
@@ -160,10 +160,24 @@ impl Pipe {
                 call.push_str(&format!(" --{flag} $args.{flag}"));
             }
         }
-        let output = self
-            .engine
-            .eval(&call, Value::record(args.clone(), Span::unknown()))?;
-        Ok(match output {
+        self.call(&call, Value::record(args.clone(), Span::unknown()))
+    }
+
+    /// Runs `main` with command-line arguments, the way `nu <pipe>.nu
+    /// <args>` does: each argument is quoted as needed and nushell's parser
+    /// checks them against `main`'s signature. For a CLI only; embedders
+    /// pass typed values to `run`.
+    pub fn run_command_line(&mut self, args: &[String]) -> Result<Vec<Value>, PipeError> {
+        let mut call = self.info.name.clone();
+        for arg in args {
+            call.push(' ');
+            call.push_str(&nu_parser::escape_for_script_arg(arg));
+        }
+        self.call(&call, Value::nothing(Span::unknown()))
+    }
+
+    fn call(&mut self, source: &str, input: Value) -> Result<Vec<Value>, PipeError> {
+        Ok(match self.engine.eval(source, input)? {
             Value::List { vals, .. } => vals.to_vec(),
             Value::Nothing { .. } => Vec::new(),
             other => vec![other],

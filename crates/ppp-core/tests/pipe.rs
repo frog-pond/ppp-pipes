@@ -190,3 +190,44 @@ fn file_names_must_be_command_names() {
         );
     }
 }
+
+#[test]
+fn runs_with_command_line_arguments() {
+    let mut pipe = load("two-events.nu");
+    let args = ["--count", "1", "--prefix=Club: ", "--loud"].map(String::from);
+    assert_eq!(
+        summaries(&pipe.run_command_line(&args).unwrap()),
+        ["CLUB: CHESS CLUB"]
+    );
+    let off = ["--loud=false"].map(String::from);
+    assert_eq!(
+        summaries(&pipe.run_command_line(&off).unwrap()),
+        ["Chess Club", "Choir"]
+    );
+}
+
+#[test]
+fn nushell_checks_command_line_arguments() {
+    let mut pipe = load("two-events.nu");
+    for (args, code) in [
+        (vec!["--days", "3"], "nu::parser::unknown_flag"),
+        (vec!["--count", "two"], "nu::parser::parse_mismatch"),
+        (vec!["--count"], "nu::parser::missing_flag_param"),
+        (vec!["3"], "nu::parser::extra_positional"),
+    ] {
+        let args: Vec<String> = args.iter().map(|a| a.to_string()).collect();
+        let err = pipe.run_command_line(&args).unwrap_err().to_string();
+        assert!(err.contains(code), "{args:?}: {err}");
+    }
+}
+
+#[test]
+fn command_line_values_are_quoted() {
+    let mut pipe = load("two-events.nu");
+    let args = ["--prefix", "a\"b; error make {msg: 'injected'} #"].map(String::from);
+    let records = pipe.run_command_line(&args).unwrap();
+    assert_eq!(
+        summaries(&records)[0],
+        "a\"b; error make {msg: 'injected'} #Chess Club"
+    );
+}
