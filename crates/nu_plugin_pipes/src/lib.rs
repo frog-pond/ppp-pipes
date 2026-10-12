@@ -55,6 +55,9 @@ impl Plugin for PipesPlugin {
             Box::new(ToPipesJson(commands::ToPipesJson {
                 context: context.clone(),
             })),
+            Box::new(PipeWarn(commands::PipeWarn {
+                context: context.clone(),
+            })),
             Box::new(PipeGet(commands::PipeGet { context })),
         ]
     }
@@ -139,6 +142,28 @@ impl SimplePluginCommand for HtmlToText {
             Value::Nothing { .. } => Value::nothing(call.head),
             value => Value::string(ppp_core::html::to_text(&value.coerce_str()?), call.head),
         })
+    }
+}
+
+/// In stock `nu` a warning goes straight to stderr. (`query web`, which
+/// pipes also use, comes from nushell's own `nu_plugin_query` there.)
+pub struct PipeWarn(commands::PipeWarn);
+
+impl SimplePluginCommand for PipeWarn {
+    borrow_from_core!();
+    fn signature(&self) -> Signature {
+        self.0.signature()
+    }
+    fn run(
+        &self,
+        _: &PipesPlugin,
+        _: &EngineInterface,
+        call: &EvaluatedCall,
+        input: &Value,
+    ) -> Result<Value, LabeledError> {
+        let message: String = call.req(0)?;
+        eprintln!("Warning: {message}");
+        Ok(input.clone())
     }
 }
 
