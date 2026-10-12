@@ -68,3 +68,26 @@ fn from_ics_tz_flag() {
     assert!(err.0.contains("cannot read iCalendar text"), "{err}");
     assert!(err.0.contains("pass --tz"), "{err}");
 }
+
+#[test]
+fn from_ics_reads_binary_input() {
+    // Feeds served as application/octet-stream arrive from `http get --raw` as binary.
+    let mut engine = Engine::new();
+    let mut bytes = "\u{feff}".as_bytes().to_vec();
+    bytes.extend(fixture("minimal.ics").into_bytes());
+    let out = nuon(
+        &mut engine,
+        "$in | from ics | get summary",
+        Value::test_binary(bytes),
+    );
+    assert_eq!(out, "[Dentist]");
+}
+
+#[test]
+fn from_ics_refuses_binary_that_is_not_utf8() {
+    let mut engine = Engine::new();
+    let err = engine
+        .eval("$in | from ics", Value::test_binary(vec![0xff, 0xfe, 0x00]))
+        .unwrap_err();
+    assert!(err.0.contains("is not UTF-8 text"), "{err}");
+}

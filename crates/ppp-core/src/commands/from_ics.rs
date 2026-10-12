@@ -26,7 +26,10 @@ impl Command for FromIcs {
 
     fn signature(&self) -> Signature {
         Signature::build("from ics")
-            .input_output_types(vec![(Type::String, Type::table())])
+            .input_output_types(vec![
+                (Type::String, Type::table()),
+                (Type::Binary, Type::table()),
+            ])
             .named(
                 "tz",
                 SyntaxShape::String,
@@ -45,7 +48,27 @@ impl Command for FromIcs {
     ) -> Result<PipelineData, ShellError> {
         let head = call.head;
         let tz: Option<String> = call.get_flag(engine_state, stack, "tz")?;
-        let (text, span, _) = input.collect_string_strict(head)?;
+        // Feeds served as application/octet-stream arrive as binary.
+        let value = input.into_value(head)?;
+        let span = value.span();
+        let text = match value {
+            Value::String { val, .. } => val,
+            Value::Binary { val, .. } => String::from_utf8(val.to_vec()).map_err(|_| {
+                ShellError::Generic(GenericError::new(
+                    "cannot read iCalendar text",
+                    "the input is not UTF-8 text",
+                    span,
+                ))
+            })?,
+            other => {
+                return Err(ShellError::OnlySupportsThisInputType {
+                    exp_input_type: "string or binary".into(),
+                    wrong_type: other.get_type().to_string(),
+                    dst_span: head,
+                    src_span: span,
+                });
+            }
+        };
         let events = parse_events(&text, tz.as_deref()).map_err(|err| {
             ShellError::Generic(GenericError::new(
                 "cannot read iCalendar text",
