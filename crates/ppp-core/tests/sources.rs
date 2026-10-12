@@ -139,6 +139,37 @@ fn presence_events() {
 }
 
 #[test]
+fn presence_search_photos_are_left_out() {
+    // Photos chosen through Presence's image search aren't under the
+    // event-photos path, and Presence's own link to them 404s too.
+    let feed: Json = serde_json::from_str(&fixture("presence.json")).unwrap();
+    let event = |id: &str, photo_type: Option<&str>| {
+        let mut event = feed[0].clone();
+        event["eventNoSqlId"] = json!(id);
+        match photo_type {
+            Some(kind) => event["photoType"] = json!(kind),
+            None => {
+                event.as_object_mut().unwrap().remove("photoType");
+            }
+        }
+        event
+    };
+    let feed = json!([
+        event("upload", Some("upload")),
+        event("search", Some("search")),
+        event("untyped", None)
+    ]);
+    let image_counts: Vec<usize> = events(
+        &feed.to_string(),
+        "from presence --photos https://cdn.example.edu/photos/",
+    )
+    .iter()
+    .map(|e| e["images"].as_array().map_or(0, Vec::len))
+    .collect();
+    assert_eq!(image_counts, [1, 0, 1]);
+}
+
+#[test]
 fn uniq_events_compares_starts_as_moments() {
     let mut engine = Engine::new();
     let source = "use ppp *; [
