@@ -182,3 +182,20 @@ fn cache_dir_and_no_cache_conflict() {
         text(&out.stderr)
     );
 }
+
+/// Fetches each live source. Run with `cargo test -- --ignored`.
+#[test]
+#[ignore]
+fn every_acceptance_pipe_live() {
+    for (pipe, within) in [
+        ("stolaf-wp", "1wk"),
+        ("presence", "1wk"),
+        ("carleton-week", "3day"),
+        ("northfield", "520wk"),
+        ("all-campus", "3day"),
+    ] {
+        let out = ppp(&["run", "--no-cache", pipe, "--within", within]);
+        assert_eq!(out.status.code(), Some(0), "{pipe}: {}", text(&out.stderr));
+        assert!(!records(&out).is_empty(), "{pipe} returned no events");
+    }
+}
