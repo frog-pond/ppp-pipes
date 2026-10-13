@@ -3,9 +3,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Mutex, OnceLock};
-use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::schema::{Registry, SchemaError};
@@ -78,18 +76,7 @@ impl Host {
     /// the deadline are cleared, so the host can run again.
     pub fn with_timeout<T>(&self, limit: Duration, work: impl FnOnce() -> T) -> T {
         *self.deadline.lock().expect("deadline lock") = Some(Instant::now() + limit);
-        let (done, wait) = mpsc::channel::<()>();
-        let flag = self.interrupt.clone();
-        let watchdog = thread::spawn(move || {
-            let fired = matches!(wait.recv_timeout(limit), Err(RecvTimeoutError::Timeout));
-            if fired {
-                flag.store(true, Ordering::Relaxed);
-            }
-            fired
-        });
-        let result = work();
-        let _ = done.send(());
-        let fired = watchdog.join().expect("the watchdog does not panic");
+        let (result, fired) = run_watched(&self.interrupt, limit, work);
         self.timed_out.store(fired, Ordering::Relaxed);
         self.interrupt.store(false, Ordering::Relaxed);
         *self.deadline.lock().expect("deadline lock") = None;
@@ -135,6 +122,38 @@ impl Host {
         running.push((file.to_path_buf(), name.to_string()));
         Ok(Running { host: self.clone() })
     }
+}
+
+/// Runs `work`, setting `flag` if it takes longer than `limit`. Returns its
+/// result and whether the flag was set.
+#[cfg(not(target_family = "wasm"))]
+fn run_watched<T>(flag: &Arc<AtomicBool>, limit: Duration, work: impl FnOnce() -> T) -> (T, bool) {
+    use std::sync::mpsc::{self, RecvTimeoutError};
+    use std::thread;
+
+    let (done, wait) = mpsc::channel::<()>();
+    let flag = flag.clone();
+    let watchdog = thread::spawn(move || {
+        let fired = matches!(wait.recv_timeout(limit), Err(RecvTimeoutError::Timeout));
+        if fired {
+            flag.store(true, Ordering::Relaxed);
+        }
+        fired
+    });
+    let result = work();
+    let _ = done.send(());
+    (
+        result,
+        watchdog.join().expect("the watchdog does not panic"),
+    )
+}
+
+/// WASI has no threads, so nothing watches `work`. Its HTTP requests still
+/// end at the deadline (`time_left`); to cap the whole run, the WASI host
+/// limits it, e.g. `wasmtime run -W timeout=60s`.
+#[cfg(target_family = "wasm")]
+fn run_watched<T>(_: &Arc<AtomicBool>, _: Duration, work: impl FnOnce() -> T) -> (T, bool) {
+    (work(), false)
 }
 
 /// While alive, the pipe it was made for counts as running.
