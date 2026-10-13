@@ -232,7 +232,7 @@ If a pipe skips `expand rrule`, the master keeps its `rrule`, and `into event` g
 
 `pipe get <name> [args]` runs another pipe through steps 1–4 of §5.1, in its own engine sharing the run's host (cache, timeout, warnings), and returns its records as nushell values, with datetimes intact. `args` is a record of the other pipe's flags, e.g. `{within: 3day}`. If the other pipe's records fail the check, `pipe get` fails and shows the first five failures.
 
-A run-wide stack of pipe names catches cycles. The error shows the chain: `all-campus → campus-week → all-campus`.
+A run-wide stack of running pipe files catches cycles; two files with the same name are different pipes. The error shows the chain of names: `all-campus → campus-week → all-campus`.
 
 ---
 
