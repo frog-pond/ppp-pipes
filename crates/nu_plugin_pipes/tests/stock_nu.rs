@@ -144,6 +144,22 @@ fn pipe_get_keeps_the_sandbox_in_stock_nu() {
 
 #[test]
 #[ignore]
+fn pipe_get_errors_point_at_the_pipe_name() {
+    let err = nu_failing("pipe get missing-pipe --pipes-dir fixtures/pipes");
+    // The `^` marks sit under the name in the source line above them.
+    let lines: Vec<&str> = err.lines().collect();
+    let labeled =
+        lines.windows(2).any(
+            |pair| match (pair[0].find("missing-pipe"), pair[1].find('^')) {
+                (Some(at), Some(mark)) => pair[1].trim_start().starts_with(':') && mark == at,
+                _ => false,
+            },
+        );
+    assert!(labeled, "{err}");
+}
+
+#[test]
+#[ignore]
 fn pipe_get_says_when_its_time_limit_stopped_it() {
     let err = nu_failing("pipe get slow --pipes-dir fixtures/pipes --timeout 1sec");
     assert!(
@@ -159,30 +175,44 @@ fn ctrl_c_stops_pipe_get() {
     let registry = Path::new(env!("CARGO_TARGET_TMPDIR")).join("empty-plugin-registry-3.msgpackz");
     let _ = std::fs::remove_file(&registry);
     let started = std::time::Instant::now();
-    let child = Command::new(&nu)
+    let mut child = Command::new(&nu)
         .args(["-n", "--plugin-config"])
         .arg(&registry)
         .arg("--plugins")
         .arg(env!("CARGO_BIN_EXE_nu_plugin_pipes"))
-        .args(["-c", "pipe get slow --pipes-dir fixtures/pipes"])
+        .args([
+            "-c",
+            "print --stderr ready; pipe get slow --pipes-dir fixtures/pipes",
+        ])
         .current_dir(repo())
         .stderr(std::process::Stdio::piped())
         .spawn()
         .unwrap();
-    std::thread::sleep(std::time::Duration::from_secs(2));
-    Command::new("kill")
-        .args(["-INT", &child.id().to_string()])
-        .status()
-        .unwrap();
-    let out = child.wait_with_output().unwrap();
+    // Until nu runs code it hasn't set up its Ctrl-C handler, and a signal
+    // would kill it outright.
+    let mut stderr = std::io::BufReader::new(child.stderr.take().unwrap());
+    let mut first = String::new();
+    std::io::BufRead::read_line(&mut stderr, &mut first).unwrap();
+    assert_eq!(first, "ready\n");
+    // A Ctrl-C that comes before the plugin is running `pipe get` is lost,
+    // as it would be at a terminal, so press it until nu exits.
+    while child.try_wait().unwrap().is_none()
+        && started.elapsed() < std::time::Duration::from_secs(15)
+    {
+        Command::new("kill")
+            .args(["-INT", &child.id().to_string()])
+            .status()
+            .unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    }
+    let _ = child.kill();
+    child.wait().unwrap();
+    let mut rest = String::new();
+    std::io::Read::read_to_string(&mut stderr, &mut rest).unwrap();
     assert!(
         started.elapsed() < std::time::Duration::from_secs(15),
         "took {:?}",
         started.elapsed()
     );
-    assert!(
-        String::from_utf8_lossy(&out.stderr).contains("was interrupted"),
-        "{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
+    assert!(rest.contains("was interrupted"), "{rest}");
 }
