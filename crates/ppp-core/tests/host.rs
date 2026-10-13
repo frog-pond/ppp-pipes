@@ -62,6 +62,21 @@ fn http_get_parses_json_by_content_type() {
 }
 
 #[test]
+fn an_empty_json_response_is_nothing() {
+    let server = serve(vec![
+        reply("200 OK", &[("Content-Type", "application/json")], ""),
+        reply("200 OK", &[("Content-Type", "application/json")], " \r\n"),
+    ]);
+    let mut engine = Engine::with_host(host(None));
+    for _ in 0..2 {
+        assert_eq!(
+            eval(&mut engine, &format!("http get {} | describe", server.url)),
+            r#""nothing""#
+        );
+    }
+}
+
+#[test]
 fn http_get_returns_text_or_binary() {
     let server = serve(vec![
         reply(

@@ -128,6 +128,12 @@ pub fn max_age(cache_control: &str) -> Option<SignedDuration> {
     }
     directives
         .iter()
-        .find_map(|d| d.strip_prefix("max-age=")?.parse::<i64>().ok())
+        // Servers shouldn't quote the value (RFC 9111 §5.2.2.1), but some do.
+        .find_map(|d| {
+            d.strip_prefix("max-age=")?
+                .trim_matches('"')
+                .parse::<i64>()
+                .ok()
+        })
         .map(SignedDuration::from_secs)
 }
