@@ -140,3 +140,43 @@ fn recursive_schemas_end() {
         ]
     );
 }
+
+#[test]
+fn relative_refs_resolve_against_the_document_id() {
+    let doc = doc_with(
+        json!({
+            "up": { "$ref": "../stdlib/common/1#/$defs/instant" },
+            "rooted": { "$ref": "/stdlib/common/1#/$defs/date" },
+            "sibling": { "$ref": "2#/$defs/stamp" }
+        }),
+        json!({}),
+    );
+    let sibling = json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://pipes.frogpond.tech/test/2",
+        "$defs": {
+            "stamp": {
+                "type": "object",
+                "properties": { "at": { "$ref": format!("{C}/instant") } }
+            }
+        }
+    });
+    let registry = Registry::from_documents(vec![common(), doc, sibling]).unwrap();
+    assert_eq!(
+        registry.record_type("thing").unwrap().time_fields.paths(),
+        vec![
+            ("rooted".to_string(), TimeKind::Date),
+            ("sibling.at".to_string(), TimeKind::Instant),
+            ("up".to_string(), TimeKind::Instant),
+        ]
+    );
+    let record = json!({
+        "type": "thing",
+        "up": "2026-10-14T00:30:00Z",
+        "rooted": "2026-10-14",
+        "sibling": { "at": "2026-10-14T00:30:00Z" }
+    });
+    assert!(registry.validate(0, &record).is_empty());
+    let bad = json!({ "type": "thing", "rooted": "soon" });
+    assert_eq!(registry.validate(0, &bad)[0].pointer, "/rooted");
+}
