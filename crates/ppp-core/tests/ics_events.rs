@@ -230,7 +230,7 @@ fn recurrence_fields() {
         [
             "2026-11-26T09:30:00-05:00[America/New_York]",
             "2026-11-27T09:30:00-05:00[America/New_York]",
-            "2026-12-25T00:00:00-05:00[America/New_York]"
+            "2026-12-25T09:30:00-05:00[America/New_York]"
         ]
     );
     assert_eq!(
@@ -450,4 +450,44 @@ fn a_bad_period_names_the_rdate() {
         matches!(err, IcsError::BadValue { ref property, ref value, .. } if property == "RDATE" && value == "20261014T120000/soon"),
         "{err:?}"
     );
+}
+
+#[test]
+fn a_date_exdate_on_a_timed_series_removes_that_days_occurrence() {
+    let e = one(
+        &calendar(
+            &["X-WR-TIMEZONE:America/Chicago"],
+            &[
+                "DTSTART;TZID=America/New_York:20261013T180000",
+                "RRULE:FREQ=WEEKLY",
+                "EXDATE;VALUE=DATE:20261020,20261103",
+            ],
+        ),
+        None,
+    );
+    let exdates: Vec<String> = e.exdates.iter().map(|z| z.to_string()).collect();
+    assert_eq!(
+        exdates,
+        [
+            "2026-10-20T18:00:00-04:00[America/New_York]",
+            "2026-11-03T18:00:00-05:00[America/New_York]",
+        ]
+    );
+}
+
+#[test]
+fn a_date_exdate_on_an_all_day_series_stays_a_date() {
+    let e = one(
+        &calendar(
+            &["X-WR-TIMEZONE:America/Chicago"],
+            &[
+                "DTSTART;VALUE=DATE:20261013",
+                "RRULE:FREQ=WEEKLY",
+                "EXDATE;VALUE=DATE:20261020",
+            ],
+        ),
+        None,
+    );
+    let exdates: Vec<String> = e.exdates.iter().map(|z| z.to_string()).collect();
+    assert_eq!(exdates, ["2026-10-20T00:00:00-05:00[America/Chicago]"]);
 }
