@@ -290,7 +290,7 @@ impl SimplePluginCommand for PipeGet {
         result.map_err(|err| {
             let err = if pressed.load(Ordering::Relaxed) {
                 CommandError::new(format!("pipe get {name}"), "the pipe was interrupted")
-            } else if host.interrupted() {
+            } else if host.timed_out() {
                 let limit = humantime(limit);
                 CommandError::new(
                     format!("pipe get {name}"),
