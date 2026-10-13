@@ -59,12 +59,20 @@ pub fn fetch(
         Some(left) => left.min(host.config.http_timeout),
         None => host.config.http_timeout,
     };
-    let agent: ureq::Agent = ureq::Agent::config_builder()
-        .timeout_global(Some(timeout))
+    let config = ureq::Agent::config_builder()
         .http_status_as_error(false)
-        .user_agent("ppp-pipes")
-        .build()
-        .into();
+        .user_agent("ppp-pipes");
+    #[cfg(not(target_family = "wasm"))]
+    let config = config.timeout_global(Some(timeout));
+    // ureq resolves names on a thread when a timeout covers resolving, and
+    // WASI has no threads, so there each other step gets the timeout.
+    #[cfg(target_family = "wasm")]
+    let config = config
+        .timeout_connect(Some(timeout))
+        .timeout_send_request(Some(timeout))
+        .timeout_recv_response(Some(timeout))
+        .timeout_recv_body(Some(timeout));
+    let agent: ureq::Agent = config.build().into();
     let mut request = agent.get(url);
     if let Some((meta, _)) = &cached {
         if let Some(etag) = &meta.etag {

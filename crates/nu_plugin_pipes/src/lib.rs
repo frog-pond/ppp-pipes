@@ -14,6 +14,7 @@ use nu_protocol::engine::Command;
 use nu_protocol::{LabeledError, Record, SignalAction, Signature, Spanned, SyntaxShape, Value};
 use ppp_core::commands::{self, CommandError, Context};
 use ppp_core::host::{Host, HostConfig};
+use ppp_core::html_query::Selector;
 use ppp_core::schema::Registry;
 
 /// How long `pipe get` lets a pipe run.
@@ -181,9 +182,26 @@ impl SimplePluginCommand for QueryHtml {
         call: &EvaluatedCall,
         input: &Value,
     ) -> Result<Value, LabeledError> {
-        ppp_core::html_query::parse_selector_params(call, input, &mut |message| {
-            eprintln!("{message}")
-        })
+        let head = call.head;
+        let selector = Selector {
+            query: call.get_flag("query")?.unwrap_or(Spanned {
+                item: String::new(),
+                span: head,
+            }),
+            as_html: call.has_flag("as-html")?,
+            attribute: call
+                .get_flag("attribute")?
+                .unwrap_or_else(|| Value::nothing(head)),
+            as_table: call
+                .get_flag("as-table")?
+                .unwrap_or_else(|| Value::nothing(head)),
+            inspect: Spanned {
+                item: call.has_flag("inspect")?,
+                span: call.get_flag_span("inspect").unwrap_or(head),
+            },
+            document: call.has_flag("document")?,
+        };
+        ppp_core::html_query::query(selector, input, &mut |message| eprintln!("{message}"))
     }
 }
 

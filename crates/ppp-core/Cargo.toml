@@ -14,7 +14,6 @@ nu-cmd-lang.workspace = true
 nu-command.workspace = true
 nu-engine.workspace = true
 nu-parser.workspace = true
-nu-plugin-protocol.workspace = true
 nu-protocol.workspace = true
 rrule.workspace = true
 scraper.workspace = true
@@ -24,6 +23,14 @@ sha2.workspace = true
 thiserror.workspace = true
 ureq.workspace = true
 url.workspace = true
+
+# Natively, nushell crates turn on nu-protocol's `os` feature, and the
+# others don't compile unless theirs matches.
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+nu-cmd-lang = { workspace = true, features = ["os"] }
+nu-command = { workspace = true, features = ["os", "network", "rustls-tls"] }
+nu-engine = { workspace = true, features = ["os"] }
+nu-protocol = { workspace = true, features = ["os"] }
 
 [dev-dependencies]
 flate2 = "1"

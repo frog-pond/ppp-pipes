@@ -13,6 +13,9 @@ env:
   CARGO_TERM_COLOR: always
   # The plugin is built against this nushell and loads only into it.
   NU_VERSION: 0.116.1
+  # For the WASI build: a C toolchain for ring's C code, and a runtime.
+  WASI_SDK_VERSION: "34.0"
+  WASMTIME_VERSION: 49.0.2
 
 jobs:
   test:
@@ -45,6 +48,39 @@ jobs:
           echo "PPP_TEST_NU=$RUNNER_TEMP/nu-$NU_VERSION-x86_64-unknown-linux-gnu/nu" >> "$GITHUB_ENV"
       - name: Stock nu tests
         run: cargo test -p nu_plugin_pipes --test stock_nu -- --ignored
+
+  wasi:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    # The WASI build needs nightly (nu-command's typed-path uses
+    # feature(wasip2)), and nightly doesn't block a merge.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: wasm32-wasip2
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Install wasi-sdk ${{ env.WASI_SDK_VERSION }} and wasmtime ${{ env.WASMTIME_VERSION }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "wasi-sdk-${WASI_SDK_VERSION%%.*}" -R WebAssembly/wasi-sdk \
+            -p "wasi-sdk-$WASI_SDK_VERSION-x86_64-linux.tar.gz" -O - \
+            | tar xz -C "$RUNNER_TEMP"
+          sdk="$RUNNER_TEMP/wasi-sdk-$WASI_SDK_VERSION-x86_64-linux"
+          echo "CC_wasm32_wasip2=$sdk/bin/clang" >> "$GITHUB_ENV"
+          echo "AR_wasm32_wasip2=$sdk/bin/llvm-ar" >> "$GITHUB_ENV"
+          echo "CFLAGS_wasm32_wasip2=--sysroot=$sdk/share/wasi-sysroot" >> "$GITHUB_ENV"
+          gh release download "v$WASMTIME_VERSION" -R bytecodealliance/wasmtime \
+            -p "wasmtime-v$WASMTIME_VERSION-x86_64-linux.tar.xz" -O - \
+            | tar xJ -C "$RUNNER_TEMP"
+          echo "PPP_TEST_WASMTIME=$RUNNER_TEMP/wasmtime-v$WASMTIME_VERSION-x86_64-linux/wasmtime" >> "$GITHUB_ENV"
+      - run: cargo clippy -p ppp-core -p ppp-cli --target wasm32-wasip2 -- -D warnings
+      - run: cargo build -p ppp-cli --target wasm32-wasip2
+      - name: WASI tests
+        run: PPP_TEST_WASM="$PWD/target/wasm32-wasip2/debug/ppp.wasm" cargo test -p ppp-cli --test wasi -- --ignored
 
   live:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'

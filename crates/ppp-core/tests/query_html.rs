@@ -166,3 +166,34 @@ fn query_html_needs_text() {
         .unwrap_err();
     assert!(err.0.contains("Requires text input"), "{}", err.0);
 }
+
+#[test]
+fn a_selector_runs_without_a_call() {
+    use nu_protocol::{Span, Spanned};
+    use ppp_core::html_query::{Selector, query};
+    let head = Span::test_data();
+    let selector = Selector {
+        query: Spanned {
+            item: "a".into(),
+            span: head,
+        },
+        as_html: false,
+        attribute: Value::test_string("href"),
+        as_table: Value::nothing(head),
+        inspect: Spanned {
+            item: false,
+            span: head,
+        },
+        document: false,
+    };
+    let links = query(
+        selector,
+        &html(r#"<a href="/x">x</a><a href="/y">y</a>"#),
+        &mut |_| {},
+    )
+    .unwrap();
+    assert_eq!(
+        links,
+        Value::test_list(vec![Value::test_string("/x"), Value::test_string("/y")])
+    );
+}

@@ -31,7 +31,6 @@
 
 mod web_tables;
 
-use nu_plugin_protocol::EvaluatedCall;
 use nu_protocol::{LabeledError, Record, Span, Spanned, Value};
 use scraper::{Html, Selector as ScraperSelector};
 use web_tables::WebTable;
@@ -48,40 +47,9 @@ pub struct Selector {
     pub document: bool,
 }
 
-pub fn parse_selector_params(
-    call: &EvaluatedCall,
-    input: &Value,
-    report: Report,
-) -> Result<Value, LabeledError> {
-    let head = call.head;
-    let query: Option<Spanned<String>> = call.get_flag("query")?;
-    let as_html = call.has_flag("as-html")?;
-    let attribute = call
-        .get_flag("attribute")?
-        .unwrap_or_else(|| Value::nothing(head));
-    let as_table: Value = call
-        .get_flag("as-table")?
-        .unwrap_or_else(|| Value::nothing(head));
-
-    let inspect = call.has_flag("inspect")?;
-    let inspect_span = call.get_flag_span("inspect").unwrap_or(call.head);
-    let document = call.has_flag("document")?;
-
-    let selector = Selector {
-        query: query.unwrap_or(Spanned {
-            span: call.head,
-            item: "".to_owned(),
-        }),
-        as_html,
-        attribute,
-        as_table,
-        inspect: Spanned {
-            item: inspect,
-            span: inspect_span,
-        },
-        document,
-    };
-
+/// Runs `selector` on the HTML in `input`. Each caller builds the selector
+/// from its own kind of call (the engine's, or the plugin's).
+pub fn query(selector: Selector, input: &Value, report: Report) -> Result<Value, LabeledError> {
     let span = input.span();
     match input {
         Value::String { val, .. } => begin_selector_query(val.to_string(), selector, span, report),

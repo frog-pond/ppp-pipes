@@ -4292,7 +4292,6 @@ dependencies = [
  "nu-command",
  "nu-engine",
  "nu-parser",
- "nu-plugin-protocol",
  "nu-protocol",
  "rrule",
  "scraper",
