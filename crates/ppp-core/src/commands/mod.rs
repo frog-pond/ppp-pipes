@@ -69,6 +69,9 @@ pub fn bind(working_set: &mut StateWorkingSet, context: &Context) {
 pub struct CommandError {
     pub title: String,
     pub message: String,
+    /// What the error is about, such as the input or a flag's value, when
+    /// that isn't the command itself.
+    pub span: Option<Span>,
 }
 
 impl CommandError {
@@ -76,14 +79,27 @@ impl CommandError {
         CommandError {
             title: title.into(),
             message: message.into(),
+            span: None,
         }
     }
 
-    pub fn into_shell_error(self, span: Span) -> ShellError {
+    /// Points the error at `span` instead of at the command.
+    pub fn at(self, span: Span) -> CommandError {
+        CommandError {
+            span: Some(span),
+            ..self
+        }
+    }
+
+    /// The error, labeled at its own span or else at `head`.
+    pub fn into_shell_error(self, head: Span) -> ShellError {
+        let span = self.span.unwrap_or(head);
         ShellError::Generic(GenericError::new(self.title, self.message, span))
     }
 
-    pub fn into_labeled_error(self, span: Span) -> LabeledError {
+    /// The error, labeled at its own span or else at `head`.
+    pub fn into_labeled_error(self, head: Span) -> LabeledError {
+        let span = self.span.unwrap_or(head);
         LabeledError::new(self.title).with_label(self.message, span)
     }
 }

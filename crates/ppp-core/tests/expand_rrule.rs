@@ -3,6 +3,8 @@
 use std::fs;
 use std::path::Path;
 
+mod support;
+
 use nu_protocol::Value;
 use ppp_core::engine::Engine;
 use ppp_core::schema::Registry;
@@ -177,6 +179,20 @@ fn bad_rules_name_the_event() {
         "{err}"
     );
     assert!(err.0.contains("SOMETIMES"), "{err}");
+}
+
+#[test]
+fn a_window_past_jiffs_range_points_at_the_flag() {
+    let mut engine = Engine::new();
+    let err = engine
+        .eval(
+            // A duration literal can't reach year 10000, so add 100,000 days 40 times.
+            "let far = seq 1 40 | reduce --fold 2026-10-01T00:00:00Z {|_, at| $at + 100000day}
+             [] | expand rrule --from 2026-10-01T00:00:00Z --until $far",
+            Value::test_nothing(),
+        )
+        .unwrap_err();
+    assert!(support::labels(&err.0, "--until $far"), "{err}");
 }
 
 #[test]

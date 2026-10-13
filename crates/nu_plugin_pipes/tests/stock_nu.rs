@@ -144,6 +144,22 @@ fn pipe_get_keeps_the_sandbox_in_stock_nu() {
 
 #[test]
 #[ignore]
+fn pipe_get_errors_point_at_the_pipe_name() {
+    let err = nu_failing("pipe get missing-pipe --pipes-dir fixtures/pipes");
+    // The `^` marks sit under the name in the source line above them.
+    let lines: Vec<&str> = err.lines().collect();
+    let labeled =
+        lines.windows(2).any(
+            |pair| match (pair[0].find("missing-pipe"), pair[1].find('^')) {
+                (Some(at), Some(mark)) => pair[1].trim_start().starts_with(':') && mark == at,
+                _ => false,
+            },
+        );
+    assert!(labeled, "{err}");
+}
+
+#[test]
+#[ignore]
 fn pipe_get_says_when_its_time_limit_stopped_it() {
     let err = nu_failing("pipe get slow --pipes-dir fixtures/pipes --timeout 1sec");
     assert!(

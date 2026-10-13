@@ -57,7 +57,8 @@ impl Command for FromIcs {
 
 /// Reads iCalendar text (a string, or UTF-8 binary) into a table of events.
 pub fn read(input: Value, tz: Option<&str>, head: Span) -> Result<Value, CommandError> {
-    let fail = |message: String| CommandError::new("cannot read iCalendar text", message);
+    let span = input.span();
+    let fail = |message: String| CommandError::new("cannot read iCalendar text", message).at(span);
     // Feeds served as application/octet-stream arrive as binary.
     let text = match input {
         Value::String { val, .. } => val,

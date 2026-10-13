@@ -3,6 +3,8 @@
 use std::fs;
 use std::path::Path;
 
+mod support;
+
 use nu_protocol::Value;
 use ppp_core::engine::Engine;
 
@@ -90,4 +92,14 @@ fn from_ics_refuses_binary_that_is_not_utf8() {
         .eval("$in | from ics", Value::test_binary(vec![0xff, 0xfe, 0x00]))
         .unwrap_err();
     assert!(err.0.contains("is not UTF-8 text"), "{err}");
+}
+
+#[test]
+fn errors_point_at_the_input() {
+    let mut engine = Engine::new();
+    for source in ["'<html>' | from ics", "0x[ff fe] | from ics"] {
+        let err = engine.eval(source, Value::test_nothing()).unwrap_err();
+        let input = source.split(" |").next().unwrap();
+        assert!(support::labels(&err.0, input), "{err}");
+    }
 }
