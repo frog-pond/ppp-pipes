@@ -238,7 +238,9 @@ fn carleton_week_without_its_page_still_has_its_events() {
     assert!(
         warnings
             .iter()
-            .any(|w| w.contains("Carleton event pictures are missing")),
+            .any(|w| w.contains("Carleton event pictures are missing")
+                && w.contains(&page.url)
+                && w.contains("returned HTTP 503")),
         "{warnings:?}"
     );
 }
