@@ -2,6 +2,7 @@
 
 use nu_engine::command_prelude::*;
 
+use super::CommandError;
 use crate::html::to_text;
 
 #[derive(Clone)]
@@ -33,11 +34,22 @@ impl Command for HtmlToText {
         input: PipelineData,
     ) -> Result<PipelineData, ShellError> {
         let head = call.head;
-        match input.into_value(head)? {
-            Value::Nothing { .. } => Ok(Value::nothing(head).into_pipeline_data()),
-            value => {
-                Ok(Value::string(to_text(&value.coerce_into_string()?), head).into_pipeline_data())
-            }
-        }
+        convert(input.into_value(head)?, head)
+            .map(|value| value.into_pipeline_data())
+            .map_err(|err| err.into_shell_error(head))
     }
+}
+
+/// Plain text from an HTML string; `null` stays `null`.
+pub fn convert(input: Value, head: Span) -> Result<Value, CommandError> {
+    Ok(match input {
+        Value::Nothing { .. } => Value::nothing(head),
+        value => {
+            let kind = value.get_type();
+            let html = value.coerce_into_string().map_err(|_| {
+                CommandError::new("html to-text", format!("expected text, got {kind}"))
+            })?;
+            Value::string(to_text(&html), head)
+        }
+    })
 }

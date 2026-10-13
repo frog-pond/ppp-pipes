@@ -141,10 +141,7 @@ impl SimplePluginCommand for HtmlToText {
         call: &EvaluatedCall,
         input: &Value,
     ) -> Result<Value, LabeledError> {
-        Ok(match input {
-            Value::Nothing { .. } => Value::nothing(call.head),
-            value => Value::string(ppp_core::html::to_text(&value.coerce_str()?), call.head),
-        })
+        commands::html_to_text::convert(input.clone(), call.head).map_err(labeled(call.head))
     }
 }
 
