@@ -80,7 +80,7 @@ jobs:
       - run: cargo clippy -p ppp-core -p ppp-cli --target wasm32-wasip2 -- -D warnings
       - run: cargo build -p ppp-cli --target wasm32-wasip2
       - name: WASI tests
-        run: PPP_TEST_WASM=target/wasm32-wasip2/debug/ppp.wasm cargo test -p ppp-cli --test wasi -- --ignored
+        run: PPP_TEST_WASM="$PWD/target/wasm32-wasip2/debug/ppp.wasm" cargo test -p ppp-cli --test wasi -- --ignored
 
   live:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
