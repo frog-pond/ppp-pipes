@@ -62,6 +62,21 @@ fn http_get_parses_json_by_content_type() {
 }
 
 #[test]
+fn an_empty_json_response_is_nothing() {
+    let server = serve(vec![
+        reply("200 OK", &[("Content-Type", "application/json")], ""),
+        reply("200 OK", &[("Content-Type", "application/json")], " \r\n"),
+    ]);
+    let mut engine = Engine::with_host(host(None));
+    for _ in 0..2 {
+        assert_eq!(
+            eval(&mut engine, &format!("http get {} | describe", server.url)),
+            r#""nothing""#
+        );
+    }
+}
+
+#[test]
 fn http_get_returns_text_or_binary() {
     let server = serve(vec![
         reply(
@@ -153,6 +168,22 @@ fn pipe_get_loops_are_errors() {
 }
 
 #[test]
+fn a_pipe_may_get_another_file_with_its_own_name() {
+    // `elsewhere/two-events.nu` gets `two-events`, which is the pipes
+    // directory's file of that name, not itself.
+    let dir = temp_dir("same-name-elsewhere");
+    let outer = dir.join("two-events.nu");
+    std::fs::write(
+        &outer,
+        "export const pipe = { output: [\"https://pipes.frogpond.tech/stdlib/calendar/1#event\"] }\n\
+         export def main []: nothing -> table { pipe get two-events }\n",
+    )
+    .unwrap();
+    let mut pipe = Pipe::load_with(&outer, host(None)).unwrap();
+    assert_eq!(pipe.run(&Record::new()).unwrap().len(), 2);
+}
+
+#[test]
 fn pipe_get_checks_the_other_pipes_records() {
     let mut pipe = Pipe::load_with(&pipes_dir().join("gets-invalid.nu"), host(None)).unwrap();
     let err = pipe.run(&Record::new()).unwrap_err().to_string();
@@ -167,7 +198,7 @@ fn a_run_past_its_time_limit_stops() {
     let started = std::time::Instant::now();
     let result = shared.with_timeout(Duration::from_millis(200), || pipe.run(&Record::new()));
     assert!(matches!(result, Err(PipeError::Engine(_))), "{result:?}");
-    assert!(shared.interrupted());
+    assert!(shared.timed_out());
     assert!(started.elapsed() < Duration::from_secs(5));
 }
 
@@ -177,7 +208,18 @@ fn a_run_inside_its_time_limit_is_untouched() {
     let mut pipe = Pipe::load_with(&pipes_dir().join("two-events.nu"), shared.clone()).unwrap();
     let result = shared.with_timeout(Duration::from_secs(30), || pipe.run(&Record::new()));
     assert_eq!(result.unwrap().len(), 2);
-    assert!(!shared.interrupted());
+    assert!(!shared.timed_out());
+}
+
+#[test]
+fn a_host_runs_again_after_a_run_timed_out() {
+    let shared = host(None);
+    let mut slow = Pipe::load_with(&pipes_dir().join("slow.nu"), shared.clone()).unwrap();
+    let _ = shared.with_timeout(Duration::from_millis(200), || slow.run(&Record::new()));
+    let mut pipe = Pipe::load_with(&pipes_dir().join("two-events.nu"), shared.clone()).unwrap();
+    let result = shared.with_timeout(Duration::from_secs(30), || pipe.run(&Record::new()));
+    assert_eq!(result.unwrap().len(), 2);
+    assert!(!shared.timed_out());
 }
 
 #[test]

@@ -1,4 +1,4 @@
-//! Every example record is valid, and every invalid record fails at the
+//! Every example record (JSON array or JSONL) is valid, and every invalid record fails at the
 //! place its file name describes.
 
 use std::fs;
@@ -15,6 +15,12 @@ fn fixtures(dir: &str) -> PathBuf {
 
 fn records(path: &Path) -> Vec<Json> {
     let text = fs::read_to_string(path).unwrap();
+    if path.extension().is_some_and(|ext| ext == "jsonl") {
+        return text
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+    }
     match serde_json::from_str(&text).unwrap() {
         Json::Array(records) => records,
         other => panic!("{} is not a JSON array: {other}", path.display()),
@@ -39,7 +45,7 @@ fn every_example_is_valid() {
         assert!(errors.is_empty(), "{}: {errors:#?}", path.display());
         checked += 1;
     }
-    assert_eq!(checked, 4);
+    assert_eq!(checked, 5);
 }
 
 /// Each invalid fixture and the JSON Pointer its one mistake is reported at.
@@ -119,4 +125,63 @@ fn long_excerpts_are_cut_on_character_boundaries() {
     let root = errors.iter().find(|e| e.pointer.is_empty()).unwrap();
     assert_eq!(root.excerpt.chars().count(), 80);
     assert!(root.excerpt.ends_with('…'));
+}
+
+#[test]
+fn a_value_failing_pattern_and_format_is_one_error() {
+    let registry = Registry::stdlib().unwrap();
+    let record = serde_json::json!({
+        "type": "event", "id": "x", "summary": "Chess Club", "start": "2026-10-22T16:00:00Z",
+        "duration": "2h", "url": "not a url"
+    });
+    let pointers: Vec<String> = registry
+        .validate(0, &record)
+        .into_iter()
+        .map(|e| e.pointer)
+        .collect();
+    assert_eq!(pointers, ["/duration", "/url"]);
+}
+
+#[test]
+fn bad_values_say_what_was_expected() {
+    let registry = Registry::stdlib().unwrap();
+    let record = serde_json::json!({
+        "type": "event", "id": "x", "summary": "Chess Club", "start": "soon",
+        "tz": "Mars/Base", "duration": "2h", "created": "yesterday",
+        "recurrence_id": "2026-13-01", "url": "not a url"
+    });
+    let messages: Vec<(String, String)> = registry
+        .validate(0, &record)
+        .into_iter()
+        .map(|e| (e.pointer, e.message))
+        .collect();
+    let expected = [
+        (
+            "/created",
+            "\"yesterday\" is not an instant, such as 2026-10-14T00:30:00Z",
+        ),
+        (
+            "/duration",
+            "\"2h\" is not an ISO 8601 duration, such as PT2H",
+        ),
+        (
+            "/recurrence_id",
+            "\"2026-13-01\" is not a date (2026-10-14), an instant (2026-10-14T00:30:00Z) or a local date-time (2026-10-14T19:30:00)",
+        ),
+        (
+            "/start",
+            "\"soon\" is not a date (2026-10-14), an instant (2026-10-14T00:30:00Z) or a local date-time (2026-10-14T19:30:00)",
+        ),
+        (
+            "/tz",
+            "\"Mars/Base\" is not an IANA time zone name, such as America/Chicago",
+        ),
+        ("/url", "\"not a url\" is not a URL"),
+    ];
+    let mut messages = messages;
+    messages.sort();
+    assert_eq!(
+        messages,
+        expected.map(|(p, m)| (p.to_string(), m.to_string()))
+    );
 }

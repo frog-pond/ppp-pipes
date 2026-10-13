@@ -3616,7 +3616,6 @@ dependencies = [
 name = "nu_plugin_pipes"
 version = "0.1.0"
 dependencies = [
- "dirs 7.0.0",
  "nu-command",
  "nu-plugin",
  "nu-plugin-test-support",
@@ -4274,7 +4273,6 @@ name = "ppp-cli"
 version = "0.1.0"
 dependencies = [
  "clap",
- "dirs 7.0.0",
  "ppp-core",
  "serde_json",
 ]
@@ -4285,6 +4283,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "chrono-tz",
+ "dirs 7.0.0",
  "flate2",
  "htmlize",
  "jiff",
@@ -4302,6 +4301,7 @@ dependencies = [
  "sha2",
  "thiserror 2.0.21",
  "ureq",
+ "url",
 ]
 
 [[package]]

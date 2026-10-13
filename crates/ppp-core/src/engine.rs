@@ -279,5 +279,8 @@ fn bind_data_commands(working_set: &mut StateWorkingSet) {
         UrlEncode,
         UrlJoin,
         UrlParse,
+        // Environment. `export-env` is a keyword the parser needs for any
+        // module that sets its environment; it runs no programs.
+        ExportEnv,
     );
 }

@@ -8,6 +8,7 @@
 use std::collections::BTreeMap;
 
 use serde_json::Value as Json;
+use url::Url;
 
 use crate::schema::{COMMON_ID, SchemaError};
 
@@ -245,14 +246,16 @@ fn walk_with_stack(
 }
 
 /// Splits a `$ref` into the target document's `$id` and a JSON Pointer.
-/// An anchor (`…/calendar/1#event`) becomes the pointer to the `$def` that
-/// declares it.
+/// A relative base resolves against `doc_id` (RFC 3986). An anchor
+/// (`…/calendar/1#event`) becomes the pointer to the `$def` that declares it.
 fn split_ref(doc_id: &str, reference: &str) -> (String, String) {
     let (base, fragment) = reference.split_once('#').unwrap_or((reference, ""));
     let target_doc = if base.is_empty() {
         doc_id.to_string()
     } else {
-        base.to_string()
+        Url::parse(doc_id)
+            .and_then(|id| id.join(base))
+            .map_or_else(|_| base.to_string(), String::from)
     };
     (target_doc, fragment.to_string())
 }

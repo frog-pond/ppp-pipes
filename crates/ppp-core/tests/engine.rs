@@ -97,6 +97,17 @@ fn our_commands_do_not_shadow_nushell_builtins() {
 }
 
 #[test]
+fn modules_can_set_their_environment() {
+    let mut engine = Engine::new();
+    let out = nuon(
+        &mut engine,
+        "module m { export-env { $env.GREETING = 'hi' } }; use m; $env.GREETING",
+        Value::test_nothing(),
+    );
+    assert_eq!(out, "\"hi\"");
+}
+
+#[test]
 fn errors_are_rendered_with_their_source() {
     let mut engine = Engine::new();
     let err = engine

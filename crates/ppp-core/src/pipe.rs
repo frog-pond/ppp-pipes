@@ -1,7 +1,7 @@
 //! Loading a pipe file, reading its metadata, running it, and checking its
 //! output at the boundary (spec §5.1).
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use jiff::SignedDuration;
@@ -67,6 +67,8 @@ pub struct Param {
 pub struct Pipe {
     engine: Engine,
     info: PipeInfo,
+    /// The pipe's file, canonicalized.
+    file: PathBuf,
 }
 
 impl Pipe {
@@ -190,7 +192,11 @@ impl Pipe {
             search_terms,
             examples,
         };
-        Ok(Pipe { engine, info })
+        Ok(Pipe {
+            engine,
+            info,
+            file: full,
+        })
     }
 
     pub fn info(&self) -> &PipeInfo {
@@ -244,7 +250,9 @@ impl Pipe {
 
     fn call(&mut self, source: &str, input: Value) -> Result<Vec<Value>, PipeError> {
         let host = self.engine.host().clone();
-        let _running = host.enter(&self.info.name).map_err(PipeError::Cycle)?;
+        let _running = host
+            .enter(&self.file, &self.info.name)
+            .map_err(PipeError::Cycle)?;
         Ok(match self.engine.eval(source, input)? {
             Value::List { vals, .. } => vals.to_vec(),
             Value::Nothing { .. } => Vec::new(),
@@ -339,6 +347,13 @@ fn read_params(command: &Value) -> Result<Vec<Param>, String> {
         match text("parameter_type").as_str() {
             "input" | "output" => {}
             "named" | "switch" if text("parameter_name") == "help" => {}
+            // `run` passes flags by name, so a flag needs one.
+            "named" | "switch" if text("parameter_name").is_empty() => {
+                return Err(format!(
+                    "`main` has a flag `-{short}` with no long name; pipe flags need one, e.g. `--name (-{short})`",
+                    short = text("short_flag")
+                ));
+            }
             kind @ ("named" | "switch") => params.push(Param {
                 name: text("parameter_name"),
                 shape: if kind == "switch" {

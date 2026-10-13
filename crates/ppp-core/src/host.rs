@@ -1,7 +1,7 @@
 //! What every engine in one run shares: where the HTTP cache lives, where
 //! `pipe get` finds pipes, the limits, and the flag a timeout sets.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -41,8 +41,10 @@ impl Default for HostConfig {
 pub struct Host {
     pub config: HostConfig,
     interrupt: Arc<AtomicBool>,
+    timed_out: AtomicBool,
     deadline: Mutex<Option<Instant>>,
-    running: Mutex<Vec<String>>,
+    /// Each running pipe's file and name, outermost first.
+    running: Mutex<Vec<(PathBuf, String)>>,
     warnings: Mutex<Vec<String>>,
     registry: OnceLock<Arc<Registry>>,
 }
@@ -68,26 +70,37 @@ impl Host {
         self.interrupt.clone()
     }
 
-    /// Whether a timeout has stopped this run.
+    /// Whether the interrupt flag is set: the running pipe must stop.
     pub fn interrupted(&self) -> bool {
         self.interrupt.load(Ordering::Relaxed)
     }
 
+    /// Whether the last run under `with_timeout` ran out of time.
+    pub fn timed_out(&self) -> bool {
+        self.timed_out.load(Ordering::Relaxed)
+    }
+
     /// Runs `work`, setting the interrupt flag if it takes longer than
     /// `limit`. Nushell checks the flag between steps, so a stuck pipe
-    /// stops with an "interrupted" error.
+    /// stops with an "interrupted" error. Once `work` returns the flag and
+    /// the deadline are cleared, so the host can run again.
     pub fn with_timeout<T>(&self, limit: Duration, work: impl FnOnce() -> T) -> T {
         *self.deadline.lock().expect("deadline lock") = Some(Instant::now() + limit);
         let (done, wait) = mpsc::channel::<()>();
         let flag = self.interrupt.clone();
         let watchdog = thread::spawn(move || {
-            if let Err(RecvTimeoutError::Timeout) = wait.recv_timeout(limit) {
+            let fired = matches!(wait.recv_timeout(limit), Err(RecvTimeoutError::Timeout));
+            if fired {
                 flag.store(true, Ordering::Relaxed);
             }
+            fired
         });
         let result = work();
         let _ = done.send(());
-        let _ = watchdog.join();
+        let fired = watchdog.join().expect("the watchdog does not panic");
+        self.timed_out.store(fired, Ordering::Relaxed);
+        self.interrupt.store(false, Ordering::Relaxed);
+        *self.deadline.lock().expect("deadline lock") = None;
         result
     }
 
@@ -117,16 +130,17 @@ impl Host {
         std::mem::take(&mut *self.warnings.lock().expect("warnings lock"))
     }
 
-    /// Marks `name` as running for the length of the returned guard, or
-    /// returns the chain of pipes if `name` is already running.
-    pub fn enter(self: &Arc<Self>, name: &str) -> Result<Running, Vec<String>> {
+    /// Marks the pipe in `file` as running for the length of the returned
+    /// guard, or returns the chain of pipe names if that file is already
+    /// running. Two files may share a name, so the file is what counts.
+    pub fn enter(self: &Arc<Self>, file: &Path, name: &str) -> Result<Running, Vec<String>> {
         let mut running = self.running.lock().expect("running lock");
-        if running.iter().any(|n| n == name) {
-            let mut chain = running.clone();
+        if running.iter().any(|(f, _)| f == file) {
+            let mut chain: Vec<String> = running.iter().map(|(_, n)| n.clone()).collect();
             chain.push(name.to_string());
             return Err(chain);
         }
-        running.push(name.to_string());
+        running.push((file.to_path_buf(), name.to_string()));
         Ok(Running { host: self.clone() })
     }
 }
