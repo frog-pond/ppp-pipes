@@ -248,7 +248,7 @@ impl SimplePluginCommand for PipeGet {
     }
     fn run(
         &self,
-        _: &PipesPlugin,
+        plugin: &PipesPlugin,
         engine: &EngineInterface,
         call: &EvaluatedCall,
         _: &Value,
@@ -261,11 +261,14 @@ impl SimplePluginCommand for PipeGet {
             _ => PIPE_TIMEOUT,
         };
         let cwd = PathBuf::from(engine.get_current_dir()?);
-        let host = Arc::new(Host::new(HostConfig {
-            cache_dir: ppp_core::cache::default_dir(),
-            pipes_dir: cwd.join(pipes_dir.unwrap_or_else(|| "pipes".into())),
-            ..HostConfig::default()
-        }));
+        let host = Arc::new(
+            Host::new(HostConfig {
+                cache_dir: ppp_core::cache::default_dir(),
+                pipes_dir: cwd.join(pipes_dir.unwrap_or_else(|| "pipes".into())),
+                ..HostConfig::default()
+            })
+            .with_registry(plugin.registry()?),
+        );
         // The plugin runs in its own process: Ctrl-C reaches it only as a
         // signal from nu, which must stop the sandboxed engine too.
         let pressed = Arc::new(AtomicBool::new(false));
