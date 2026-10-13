@@ -150,6 +150,7 @@ fn read_event(event: &Component, calendar_zone: Option<&str>) -> Result<Event, I
             .or(calendar_zone.map(str::to_string)),
         None => None,
     };
+    let exdates = reader.exdates(event.all("EXDATE"), start.as_ref().filter(|_| !all_day))?;
 
     Ok(Event {
         summary: text("SUMMARY"),
@@ -175,7 +176,7 @@ fn read_event(event: &Component, calendar_zone: Option<&str>) -> Result<Event, I
         geo: event.property("GEO").and_then(|p| read_geo(&p.value)),
         rrule: raw("RRULE"),
         rdates: reader.rdates(event.all("RDATE"))?,
-        exdates: reader.times(event.all("EXDATE"))?,
+        exdates,
         recurrence_id: event
             .property("RECURRENCE-ID")
             .map(|p| reader.time(p))
@@ -201,12 +202,31 @@ impl Reader<'_> {
         self.time_value(prop, prop.value.trim())
     }
 
-    /// Reads every value of every given EXDATE-style property.
-    fn times<'p>(&self, props: impl Iterator<Item = &'p Property>) -> Result<Vec<Zoned>, IcsError> {
+    /// Reads every value of every EXDATE property. RFC 5545 doesn't allow
+    /// a DATE on a timed series (`timed_start`), but feeds write one to
+    /// mean that day's occurrence, so it becomes the series' start time on
+    /// that date.
+    fn exdates<'p>(
+        &self,
+        props: impl Iterator<Item = &'p Property>,
+        timed_start: Option<&Zoned>,
+    ) -> Result<Vec<Zoned>, IcsError> {
         let mut out = Vec::new();
         for prop in props {
             for value in list_values(prop) {
-                out.push(self.time_value(prop, value)?);
+                let time = self.time_value(prop, value)?;
+                out.push(match timed_start {
+                    Some(start) if is_date_text(value) => time
+                        .date()
+                        .to_datetime(start.time())
+                        .to_zoned(start.time_zone().clone())
+                        .map_err(|_| IcsError::BadValue {
+                            uid: self.uid.clone(),
+                            property: prop.name.clone(),
+                            value: value.to_string(),
+                        })?,
+                    _ => time,
+                });
             }
         }
         Ok(out)

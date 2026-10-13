@@ -127,7 +127,8 @@ fn rdates_alone_still_count_dtstart() {
 
 #[test]
 fn dtstart_counts_even_when_the_rule_skips_it() {
-    // A Monday DTSTART with a Tuesday rule: RFC 5545 counts the Monday too.
+    // A Monday DTSTART with a Tuesday rule: RFC 5545 counts the Monday as
+    // the first of the two.
     let start = zoned("2026-11-02T18:00:00[America/Chicago]");
     let series = Series {
         start: &start,
@@ -145,7 +146,6 @@ fn dtstart_counts_even_when_the_rule_skips_it() {
         [
             "2026-11-02T18:00:00-06:00[America/Chicago]",
             "2026-11-03T18:00:00-06:00[America/Chicago]",
-            "2026-11-10T18:00:00-06:00[America/Chicago]",
         ]
     );
 }
@@ -274,9 +274,26 @@ fn too_many_occurrences_is_an_error() {
 }
 
 #[test]
-fn bad_rules_are_errors() {
+fn bad_rules_are_errors_that_name_the_rule() {
     let start = zoned("2026-10-27T18:00:00[America/Chicago]");
-    for rule in ["FREQ=SOMETIMES", "FREQ=DAILY;UNTIL=someday"] {
+    for (rule, message) in [
+        (
+            "FREQ=SOMETIMES",
+            "RRULE \"FREQ=SOMETIMES\" is not valid: `SOMETIMES` is not a valid frequency.",
+        ),
+        (
+            "FREQ=DAILY;UNTIL=someday",
+            "RRULE \"FREQ=DAILY;UNTIL=someday\" is not valid: UNTIL value \"someday\" is not a date or date-time",
+        ),
+        (
+            "FREQ=DAILY;BYSETPOS=0",
+            "RRULE \"FREQ=DAILY;BYSETPOS=0\" is not valid: `BYSETPOS` can't be `0`, must be larger or smaller then `0`.",
+        ),
+        (
+            "FREQ=DAILY;UNTIL=20261201T000000;BYHOUR=99",
+            "RRULE \"FREQ=DAILY;UNTIL=20261201T000000;BYHOUR=99\" is not valid: `99` is not a valid BYHOUR value. Expected a comma-separated list of values in range 0..=23, e.g. `1,3,4`",
+        ),
+    ] {
         let series = Series {
             start: &start,
             rrule: Some(rule),
@@ -288,8 +305,10 @@ fn bad_rules_are_errors() {
             TWO_HOURS,
             instant("2026-10-27T00:00:00Z"),
             instant("2026-12-01T00:00:00Z"),
-        );
-        assert!(matches!(err, Err(RecurError::Rule(_))), "{rule}: {err:?}");
+        )
+        .unwrap_err();
+        assert!(matches!(err, RecurError::Rule { .. }), "{rule}: {err:?}");
+        assert_eq!(err.to_string(), message);
     }
 }
 
@@ -390,5 +409,48 @@ fn a_period_rdate_keeps_its_own_end() {
             start: zoned("2026-11-05T09:00:00[America/Chicago]"),
             period_end: Some(zoned("2026-11-05T17:00:00[America/Chicago]")),
         }]
+    );
+}
+
+#[test]
+fn an_off_rule_dtstart_with_count_1_is_the_only_occurrence() {
+    let start = zoned("2026-10-12T18:00:00[America/Chicago]");
+    let series = Series {
+        start: &start,
+        rrule: Some("FREQ=WEEKLY;BYDAY=TU;COUNT=1"),
+        rdates: &[],
+        exdates: &[],
+    };
+    assert_eq!(
+        starts(
+            &series,
+            TWO_HOURS,
+            "2026-10-01T00:00:00Z",
+            "2026-12-01T00:00:00Z"
+        ),
+        ["2026-10-12T18:00:00-05:00[America/Chicago]"]
+    );
+}
+
+#[test]
+fn an_on_rule_dtstart_is_counted_once() {
+    let start = zoned("2026-10-13T18:00:00[America/Chicago]");
+    let series = Series {
+        start: &start,
+        rrule: Some("FREQ=WEEKLY;BYDAY=TU;COUNT=2"),
+        rdates: &[],
+        exdates: &[],
+    };
+    assert_eq!(
+        starts(
+            &series,
+            TWO_HOURS,
+            "2026-10-01T00:00:00Z",
+            "2026-12-01T00:00:00Z"
+        ),
+        [
+            "2026-10-13T18:00:00-05:00[America/Chicago]",
+            "2026-10-20T18:00:00-05:00[America/Chicago]",
+        ]
     );
 }

@@ -60,7 +60,9 @@ impl Command for HttpGet {
             .content_type
             .as_deref()
             .is_some_and(|t| t.contains("json"));
-        let value = if is_json && !raw {
+        let value = if is_json && !raw && fetched.body.trim_ascii().is_empty() {
+            Value::nothing(head)
+        } else if is_json && !raw {
             let json: serde_json::Value = serde_json::from_slice(&fetched.body).map_err(|err| {
                 ShellError::Generic(GenericError::new(
                     "cannot parse JSON response",

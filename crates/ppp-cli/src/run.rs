@@ -58,7 +58,7 @@ fn cache_dir(options: &Options) -> Option<PathBuf> {
     options
         .cache_dir
         .clone()
-        .or_else(|| dirs::cache_dir().map(|dir| dir.join("ppp-pipes").join("http")))
+        .or_else(ppp_core::cache::default_dir)
 }
 
 fn try_run(
@@ -75,7 +75,7 @@ fn try_run(
         eprintln!("{warning}");
     }
     let records = records.map_err(|e| {
-        if host.interrupted() {
+        if host.timed_out() {
             format!(
                 "ppp: {} ran longer than {}s and was stopped",
                 loaded.info().name,

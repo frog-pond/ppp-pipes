@@ -76,7 +76,7 @@ pub fn expand_values(
             CommandError::new("expand rrule", "--from and --until must be datetimes")
         })?;
         time::timestamp(&date)
-            .map_err(|_| CommandError::new("date out of range", "outside the years -9999 to 9999"))
+            .map_err(|_| CommandError::new("date out of range", format!("outside {}", time::RANGE)))
     };
     let rows = match input {
         Value::List { vals, .. } => vals.to_vec(),

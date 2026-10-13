@@ -200,6 +200,24 @@ fn a_thisandfuture_override_replaces_only_its_own_occurrence() {
 }
 
 #[test]
+fn a_window_past_jiffs_range_names_the_range() {
+    let mut engine = Engine::new();
+    let err = engine
+        .eval(
+            // A duration literal can't reach year 10000, so add 100,000 days 40 times.
+            "let far = seq 1 40 | reduce --fold 2026-10-01T00:00:00Z {|_, at| $at + 100000day}
+             [] | expand rrule --from 2026-10-01T00:00:00Z --until $far",
+            Value::test_nothing(),
+        )
+        .unwrap_err();
+    assert!(
+        err.0
+            .contains("outside -9999-01-02T01:59:59Z to 9999-12-30T22:00:00Z"),
+        "{err}"
+    );
+}
+
+#[test]
 fn the_window_is_required() {
     let mut engine = Engine::new();
     let err = engine

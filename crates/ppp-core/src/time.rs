@@ -8,8 +8,12 @@ use chrono::{DateTime, FixedOffset};
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 
+/// The instants jiff can hold, for error messages: `Timestamp::MIN` to
+/// `Timestamp::MAX`.
+pub const RANGE: &str = "-9999-01-02T01:59:59Z to 9999-12-30T22:00:00Z";
+
 /// Converts a nushell datetime to a jiff timestamp. Fails only for dates
-/// outside jiff's range (years -9999 to 9999).
+/// outside jiff's range (`RANGE`).
 pub fn timestamp(dt: &DateTime<FixedOffset>) -> Result<Timestamp, jiff::Error> {
     Timestamp::new(dt.timestamp(), dt.timestamp_subsec_nanos() as i32)
 }

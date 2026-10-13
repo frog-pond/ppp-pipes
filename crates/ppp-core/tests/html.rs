@@ -34,6 +34,33 @@ fn a_lone_less_than_is_text() {
 }
 
 #[test]
+fn comments_and_cdata_end_at_their_own_close() {
+    assert_eq!(to_text("a<!-- x > y -->b"), "ab");
+    assert_eq!(to_text("a<![CDATA[ x > y ]]>b"), "ab");
+}
+
+#[test]
+fn a_quoted_greater_than_does_not_end_a_tag() {
+    assert_eq!(to_text(r#"<a title="x > y" href='p>q'>link</a>"#), "link");
+}
+
+#[test]
+fn only_html_element_names_start_tags() {
+    assert_eq!(to_text("x<y and z>w"), "x<y and z>w");
+    assert_eq!(to_text("a<o:p></o:p>b<my-widget>c</my-widget>"), "abc");
+}
+
+#[test]
+fn table_cells_stay_apart() {
+    assert_eq!(
+        to_text(
+            "<table><tr><td>Mon</td><td>9am</td></tr><tr><th>Tue</th><th>10am</th></tr></table>"
+        ),
+        "Mon 9am\nTue 10am"
+    );
+}
+
+#[test]
 fn whitespace_is_tidied() {
     assert_eq!(to_text("  a   b \n\n\n\n c  "), "a b\n\nc");
     assert_eq!(to_text("<div>  </div>"), "");
@@ -50,4 +77,26 @@ fn the_command_passes_null_through() {
         .eval("null | html to-text", Value::test_nothing())
         .unwrap();
     assert!(nothing.is_nothing());
+}
+
+#[test]
+fn convert_turns_html_values_into_text_and_keeps_null() {
+    use ppp_core::commands::html_to_text::convert;
+    let head = nu_protocol::Span::test_data();
+    assert_eq!(
+        convert(Value::test_string("<b>x</b>"), head).unwrap(),
+        Value::string("x", head)
+    );
+    assert!(convert(Value::test_nothing(), head).unwrap().is_nothing());
+}
+
+#[test]
+fn convert_refuses_input_that_is_not_text() {
+    use ppp_core::commands::html_to_text::convert;
+    let err = convert(
+        Value::test_record(Default::default()),
+        nu_protocol::Span::test_data(),
+    )
+    .unwrap_err();
+    assert_eq!(err.message, "expected text, got record");
 }

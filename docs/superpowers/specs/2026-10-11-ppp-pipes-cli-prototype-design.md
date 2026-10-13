@@ -94,7 +94,7 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
   It runs `main` with typed arguments and returns the list of records.
 - **`schema`** holds a registry of the embedded schemas, keyed by `$id`. For each record type (each `$def` with an `$anchor`) it compiles a `jsonschema` validator (2020-12, format assertion on) and a **time-field map** (§5.3). An unknown `$id` is an error. Nothing is fetched.
 - **`serialize`** turns a nushell record into JSON, formatting time fields according to the map.
-- **`cache`** stores HTTP responses on disk, as a body file and a JSON metadata file named by the SHA-256 of the URL. A response is fresh for the pipe's `refresh` if it has one, else for the response's `Cache-Control: max-age`, else not at all; a stale one is revalidated with `ETag`/`Last-Modified`. The CLI puts it in `<user cache dir>/ppp-pipes/http` (`dirs` crate). Embedders pass their own path, or none.
+- **`cache`** stores HTTP responses on disk, as a body file and a JSON metadata file named by the SHA-256 of the URL. A response is fresh for the pipe's `refresh` if it has one, else for the response's `Cache-Control: max-age`, else not at all; a stale one is revalidated with `ETag`/`Last-Modified`. The CLI and the plugin put it in `<user cache dir>/ppp-pipes/http` (`dirs` crate, through `cache::default_dir`). Embedders pass their own path, or none.
 - **`host`** holds what every engine of one run shares: the cache directory, the pipes directory `pipe get` reads, the limits, the flag a timeout sets, the stack of running pipes, and warnings for the caller to show.
 - **`time`** holds jiff helpers and the only chrono ↔ jiff conversions.
 - **`recur`** is the only module that touches the `rrule` crate.
@@ -106,7 +106,7 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
 | `from ics [--tz]` | string → table | §5.2 |
 | `expand rrule --from <dt> --until <dt>` | table → table | §5.4 |
 | `html to-text` | string → string | Strips tags and decodes entities (`&amp;`, `&#8211;`); crate chosen in the plan |
-| `http get <url> [--raw]` | → any | Replaces the built-in: http(s) only, through the cache, with the size cap. JSON (by `Content-Type`) is parsed unless `--raw`; other bodies are text when UTF-8, else binary |
+| `http get <url> [--raw]` | → any | Replaces the built-in: http(s) only, through the cache, with the size cap. JSON (by `Content-Type`) is parsed unless `--raw`, and an empty JSON body is `null`; other bodies are text when UTF-8, else binary |
 | `pipe get <name> [args]` | → table | §5.5 |
 | `pipe warn <message>` | any → any | Reports a warning (stderr under `ppp run`) and passes its input on |
 | `query html` | string → any | CSS selector queries, with the same flags and results as nushell's `query web`. Adapted from `nu_plugin_query` (MIT) rather than depending on it, because that crate's `webpage` dependency links libcurl and OpenSSL. `--inspect` output goes where warnings go |
@@ -178,7 +178,7 @@ A port of `ics.nu`. It keeps the same columns (`summary`, `start`, `end`, `all_d
 
 - `tz`: the zone each event's times belong to;
 - `rdates`: a list of `{start, end}` records. `end` is set for a PERIOD value (`20261014T090000/PT8H` or `…/20261014T170000`), and `expand rrule` gives that occurrence the period's end instead of the event's usual length;
-- `exdates`: a list of datetimes;
+- `exdates`: a list of datetimes. RFC 5545 doesn't allow a DATE `EXDATE` on a timed series, but feeds write one to drop that day's occurrence, so `from ics` reads it as the series' start time on that date;
 - `recurrence_id`: set on override VEVENTs, which are returned as their own rows.
 
 It handles CRLF and LF line endings, folded lines, quoted parameters, TEXT escapes, comma-separated lists, `DURATION` in place of `DTEND`, and `VALUE=DATE`. It reads only VEVENTs. VTIMEZONE blocks and their nested RRULEs never become events.
@@ -218,7 +218,7 @@ Inside a pipe, times are nushell `datetime` values, so `where start < (date now)
   - has `start` at the occurrence and `end` at the same length after it;
   - has `recurrence_id` set to its original start, so `into event` gives it the id `<uid>_<start as UTC basic format>` (e.g. `abc_20261013T170000Z`) and `series: <uid>`. That is the form Google Calendar uses, so expanded feeds and Google's pre-expanded feeds (Carleton) produce the same ids;
   - has no `rrule`, `rdates` or `exdates`.
-- DTSTART always counts as an occurrence, even when the rule would skip it (RFC 5545 §3.8.5.3).
+- DTSTART always counts as an occurrence, even when the rule would skip it (RFC 5545 §3.8.5.3). It is the first of a rule's `COUNT` occurrences (§3.3.10), so a rule that skips it yields one fewer.
 - An occurrence that has an override row in the input (same `uid`, `recurrence_id` equal to the occurrence's start) is left out, since the override row stands in for it. An override that moves an occurrence into or out of the window is handled by whatever filters the rows afterwards, usually `during`. `RANGE=THISANDFUTURE` is not supported: the override replaces only its own occurrence, and later ones keep the master's data.
 - Expansion runs in wall time in the row's `tz` (UTC when it has none), so an 18:00 event stays at 18:00 across DST. A wall time that falls in a spring-forward gap moves later by the gap, as RFC 5545 says. All-day events stay all-day.
 - `UNTIL` without a `Z` (a DATE for all-day series, a floating time for floating ones, as RFC 5545 requires) is read in the series' zone; a DATE `UNTIL` covers its whole day. An `UNTIL` before `DTSTART` leaves just DTSTART.
@@ -232,7 +232,7 @@ If a pipe skips `expand rrule`, the master keeps its `rrule`, and `into event` g
 
 `pipe get <name> [args]` runs another pipe through steps 1–4 of §5.1, in its own engine sharing the run's host (cache, timeout, warnings), and returns its records as nushell values, with datetimes intact. `args` is a record of the other pipe's flags, e.g. `{within: 3day}`. If the other pipe's records fail the check, `pipe get` fails and shows the first five failures.
 
-A run-wide stack of pipe names catches cycles. The error shows the chain: `all-campus → campus-week → all-campus`.
+A run-wide stack of running pipe files catches cycles; two files with the same name are different pipes. The error shows the chain of names: `all-campus → campus-week → all-campus`.
 
 ---
 
