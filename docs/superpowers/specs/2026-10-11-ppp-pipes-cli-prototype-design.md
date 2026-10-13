@@ -218,7 +218,7 @@ Inside a pipe, times are nushell `datetime` values, so `where start < (date now)
   - has `start` at the occurrence and `end` at the same length after it;
   - has `recurrence_id` set to its original start, so `into event` gives it the id `<uid>_<start as UTC basic format>` (e.g. `abc_20261013T170000Z`) and `series: <uid>`. That is the form Google Calendar uses, so expanded feeds and Google's pre-expanded feeds (Carleton) produce the same ids;
   - has no `rrule`, `rdates` or `exdates`.
-- DTSTART always counts as an occurrence, even when the rule would skip it (RFC 5545 §3.8.5.3).
+- DTSTART always counts as an occurrence, even when the rule would skip it (RFC 5545 §3.8.5.3). It is the first of a rule's `COUNT` occurrences (§3.3.10), so a rule that skips it yields one fewer.
 - An occurrence that has an override row in the input (same `uid`, `recurrence_id` equal to the occurrence's start) is left out, since the override row stands in for it. An override that moves an occurrence into or out of the window is handled by whatever filters the rows afterwards, usually `during`.
 - Expansion runs in wall time in the row's `tz` (UTC when it has none), so an 18:00 event stays at 18:00 across DST. A wall time that falls in a spring-forward gap moves later by the gap, as RFC 5545 says. All-day events stay all-day.
 - `UNTIL` without a `Z` (a DATE for all-day series, a floating time for floating ones, as RFC 5545 requires) is read in the series' zone; a DATE `UNTIL` covers its whole day. An `UNTIL` before `DTSTART` leaves just DTSTART.
