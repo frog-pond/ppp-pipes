@@ -42,6 +42,22 @@ fn a_fresh_cached_response_is_used_without_asking() {
 }
 
 #[test]
+fn urls_that_differ_only_in_fragment_share_a_cache_entry() {
+    let server = serve(vec![
+        reply("200 OK", &[("Cache-Control", "max-age=60")], "hello"),
+        reply("200 OK", &[("Cache-Control", "max-age=60")], "again"),
+    ]);
+    let host = host_with_cache("http-fragment");
+    fetch(&host, &format!("{}#x", server.url), None).unwrap();
+    let second = fetch(&host, &format!("{}#y", server.url), None).unwrap();
+    assert_eq!(
+        (second.body.as_slice(), second.from_cache),
+        (b"hello".as_slice(), true)
+    );
+    assert_eq!(server.requests.lock().unwrap().len(), 1);
+}
+
+#[test]
 fn the_pipes_refresh_wins_over_max_age() {
     let server = serve(vec![reply(
         "200 OK",
