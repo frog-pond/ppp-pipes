@@ -107,11 +107,12 @@ fn carleton_week_cleans_up_its_feed() {
     // The fixture has seven events, two of them the same event.
     assert_eq!(records.len(), 6);
     assert!(records.iter().any(|e| e["content"]["type"] == "html"));
-    for event in &records {
-        if let Some(url) = event["url"].as_str() {
-            assert!(!url.contains("&amp;") && !url.contains('\\'), "{url}");
-        }
-    }
+    // The fixture's one URL is escaped like TEXT: `&amp\;sport_id=19`.
+    let urls: Vec<&str> = records.iter().filter_map(|e| e["url"].as_str()).collect();
+    assert_eq!(
+        urls,
+        ["https://athletics.carleton.edu/calendar.aspx?game_id=10972&sport_id=19"]
+    );
 }
 
 #[test]
@@ -170,10 +171,39 @@ fn carleton_week_adds_pictures_from_its_page() {
         );
         assert_eq!(event["images"][0]["alt"], event["summary"]);
     }
+    // The window runs from 2026-09-01T00:00Z for five 365-day years,
+    // given as Chicago dates.
     let request = &page.requests.lock().unwrap()[0];
     assert!(
-        request.contains("start_date=2026-08-31") && request.contains("end_date="),
+        request.contains("start_date=2026-08-31&end_date=2031-08-30"),
         "{request}"
+    );
+}
+
+#[test]
+fn carleton_week_keeps_the_query_its_page_already_has() {
+    let feed = serve(vec![reply(
+        "200 OK",
+        &[],
+        &read("fixtures/ics/carleton.ics"),
+    )]);
+    let page = serve(vec![reply(
+        "200 OK",
+        &[("Content-Type", "text/html")],
+        &read("fixtures/html/carleton-calendar.html"),
+    )]);
+    let mut args = window(&feed.url);
+    args.push(
+        "page",
+        Value::test_string(format!("{}?view=list&start_date=1999-01-01", page.url)),
+    );
+    let records = run("carleton-week", args).unwrap();
+    assert!(records.iter().any(|e| e.get("images").is_some()));
+    let request = &page.requests.lock().unwrap()[0];
+    let target = request.lines().next().unwrap();
+    assert_eq!(
+        target,
+        "get /feed?view=list&start_date=2026-08-31&end_date=2031-08-30 http/1.1"
     );
 }
 
@@ -236,7 +266,9 @@ fn carleton_week_without_its_page_still_has_its_events() {
     assert!(
         warnings
             .iter()
-            .any(|w| w.contains("Carleton event pictures are missing")),
+            .any(|w| w.contains("Carleton event pictures are missing")
+                && w.contains(&page.url)
+                && w.contains("returned HTTP 503")),
         "{warnings:?}"
     );
 }
@@ -276,4 +308,28 @@ fn all_campus_keeps_going_when_a_source_fails() {
     );
     // Warnings are read in a terminal or a log; colour codes would be noise.
     assert!(warnings.iter().all(|w| !w.contains('\x1b')), "{warnings:?}");
+}
+
+#[test]
+fn carleton_week_with_an_unreadable_page_url_still_has_its_events() {
+    let feed = serve(vec![reply(
+        "200 OK",
+        &[],
+        &read("fixtures/ics/carleton.ics"),
+    )]);
+    let host = Arc::new(Host::new(HostConfig {
+        pipes_dir: repo("pipes"),
+        ..HostConfig::default()
+    }));
+    let mut pipe = Pipe::load_with(&repo("pipes/carleton-week.nu"), host.clone()).unwrap();
+    let mut args = window(&feed.url);
+    args.push("page", Value::test_string("not a url"));
+    assert_eq!(pipe.run(&args).unwrap().len(), 6);
+    let warnings = host.take_warnings();
+    assert!(
+        warnings
+            .iter()
+            .any(|w| w.contains("Carleton event pictures are missing")),
+        "{warnings:?}"
+    );
 }

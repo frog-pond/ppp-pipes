@@ -33,6 +33,8 @@ pub fn fetch(
     url: &str,
     refresh: Option<SignedDuration>,
 ) -> Result<Fetched, FetchError> {
+    // The fragment never reaches the server, so it must not split the cache.
+    let url = url.split_once('#').map_or(url, |(before, _)| before);
     let cache = host.config.cache_dir.as_deref().map(Cache::new);
     let cached = cache.as_ref().and_then(|cache| cache.get(url));
     let now = Timestamp::now();
@@ -125,8 +127,12 @@ pub fn fetch(
 
     match (result, cached) {
         (Ok((304, fresh, _)), Some((old, body))) => {
+            // A 304 updates only the headers it sends (RFC 9111 §4.3.4).
             let meta = Meta {
                 content_type: old.content_type.clone(),
+                etag: fresh.etag.or(old.etag),
+                last_modified: fresh.last_modified.or(old.last_modified),
+                max_age: fresh.max_age.or(old.max_age),
                 ..fresh
             };
             if let Some(cache) = &cache {

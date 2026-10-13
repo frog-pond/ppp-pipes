@@ -43,7 +43,9 @@ fn invalid_record() {
     assert_eq!(out.status.code(), Some(1));
     let stderr = text(&out.stderr);
     assert!(
-        stderr.contains("record 0 /tz: \"America/Chicgo\" is not a \"iana-tz\""),
+        stderr.contains(
+            "record 0 /tz: \"America/Chicgo\" is not an IANA time zone name, such as America/Chicago"
+        ),
         "{stderr}"
     );
     assert!(stderr.contains("    value: \"America/Chicgo\""), "{stderr}");

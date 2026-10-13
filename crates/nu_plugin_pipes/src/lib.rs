@@ -141,10 +141,7 @@ impl SimplePluginCommand for HtmlToText {
         call: &EvaluatedCall,
         input: &Value,
     ) -> Result<Value, LabeledError> {
-        Ok(match input {
-            Value::Nothing { .. } => Value::nothing(call.head),
-            value => Value::string(ppp_core::html::to_text(&value.coerce_str()?), call.head),
-        })
+        commands::html_to_text::convert(input.clone(), call.head).map_err(labeled(call.head))
     }
 }
 
@@ -265,7 +262,7 @@ impl SimplePluginCommand for PipeGet {
         };
         let cwd = PathBuf::from(engine.get_current_dir()?);
         let host = Arc::new(Host::new(HostConfig {
-            cache_dir: dirs::cache_dir().map(|dir| dir.join("ppp-pipes").join("http")),
+            cache_dir: ppp_core::cache::default_dir(),
             pipes_dir: cwd.join(pipes_dir.unwrap_or_else(|| "pipes".into())),
             ..HostConfig::default()
         }));
@@ -290,7 +287,7 @@ impl SimplePluginCommand for PipeGet {
         result.map_err(|err| {
             let err = if pressed.load(Ordering::Relaxed) {
                 CommandError::new(format!("pipe get {name}"), "the pipe was interrupted")
-            } else if host.interrupted() {
+            } else if host.timed_out() {
                 let limit = humantime(limit);
                 CommandError::new(
                     format!("pipe get {name}"),

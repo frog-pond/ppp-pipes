@@ -12,7 +12,7 @@ use crate::schema::RecordError;
 
 pub mod expand_rrule;
 pub mod from_ics;
-mod html_to_text;
+pub mod html_to_text;
 mod http_get;
 pub mod pipe_get;
 mod pipe_warn;

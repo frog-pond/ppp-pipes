@@ -150,6 +150,9 @@ fn bad_pipe_files() {
         load_error("positional.nu")
             .ends_with("`main` has a positional parameter `days`; pipe parameters must be flags")
     );
+    assert!(load_error("short-flag.nu").ends_with(
+        "`main` has a flag `-s` with no long name; pipe flags need one, e.g. `--name (-s)`"
+    ));
     assert!(load_error("missing.nu").contains("No such file"));
 }
 

@@ -42,6 +42,22 @@ fn a_fresh_cached_response_is_used_without_asking() {
 }
 
 #[test]
+fn urls_that_differ_only_in_fragment_share_a_cache_entry() {
+    let server = serve(vec![
+        reply("200 OK", &[("Cache-Control", "max-age=60")], "hello"),
+        reply("200 OK", &[("Cache-Control", "max-age=60")], "again"),
+    ]);
+    let host = host_with_cache("http-fragment");
+    fetch(&host, &format!("{}#x", server.url), None).unwrap();
+    let second = fetch(&host, &format!("{}#y", server.url), None).unwrap();
+    assert_eq!(
+        (second.body.as_slice(), second.from_cache),
+        (b"hello".as_slice(), true)
+    );
+    assert_eq!(server.requests.lock().unwrap().len(), 1);
+}
+
+#[test]
 fn the_pipes_refresh_wins_over_max_age() {
     let server = serve(vec![reply(
         "200 OK",
@@ -89,6 +105,56 @@ fn a_stale_response_is_revalidated_with_its_etag() {
         "{}",
         requests[1]
     );
+}
+
+#[test]
+fn a_304_without_validators_keeps_the_old_ones() {
+    let server = serve(vec![
+        reply(
+            "200 OK",
+            &[
+                ("ETag", "\"v1\""),
+                ("Last-Modified", "Mon, 12 Oct 2026 04:00:00 GMT"),
+            ],
+            "hello",
+        ),
+        reply("304 Not Modified", &[], ""),
+        reply("304 Not Modified", &[], ""),
+    ]);
+    let host = host_with_cache("http-304-keeps-validators");
+    fetch(&host, &server.url, None).unwrap();
+    fetch(&host, &server.url, None).unwrap();
+    fetch(&host, &server.url, None).unwrap();
+    let requests = server.requests.lock().unwrap();
+    assert!(
+        requests[2].contains("if-none-match: \"v1\""),
+        "{}",
+        requests[2]
+    );
+    assert!(
+        requests[2].contains("if-modified-since: mon, 12 oct 2026 04:00:00 gmt"),
+        "{}",
+        requests[2]
+    );
+}
+
+#[test]
+fn a_304_without_cache_control_keeps_the_old_max_age() {
+    let server = serve(vec![
+        reply(
+            "200 OK",
+            &[("ETag", "\"v1\""), ("Cache-Control", "max-age=1")],
+            "hello",
+        ),
+        reply("304 Not Modified", &[], ""),
+        reply("304 Not Modified", &[], ""),
+    ]);
+    let host = host_with_cache("http-304-keeps-max-age");
+    fetch(&host, &server.url, None).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(1100));
+    fetch(&host, &server.url, None).unwrap();
+    assert!(fetch(&host, &server.url, None).unwrap().from_cache);
+    assert_eq!(server.requests.lock().unwrap().len(), 2);
 }
 
 #[test]
@@ -190,6 +256,10 @@ fn freshness_and_max_age() {
         Some(SignedDuration::from_secs(600))
     );
     assert_eq!(max_age("max-age=600, no-cache"), None);
+    assert_eq!(
+        max_age("max-age=\"60\""),
+        Some(SignedDuration::from_secs(60))
+    );
     assert_eq!(max_age("no-store"), None);
     assert_eq!(max_age("private"), None);
 }
@@ -286,12 +356,16 @@ fn the_run_timeout_cuts_a_stuck_request_short() {
 fn nothing_is_fetched_after_the_run_timed_out() {
     let server = serve(vec![reply("200 OK", &[], "late")]);
     let host = Host::default();
-    host.with_timeout(std::time::Duration::from_millis(10), || {
-        std::thread::sleep(std::time::Duration::from_millis(100))
+    let result = host.with_timeout(std::time::Duration::from_millis(10), || {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        fetch(&host, &server.url, None)
     });
-    assert!(matches!(
-        fetch(&host, &server.url, None),
-        Err(FetchError::Network { .. })
-    ));
+    assert!(matches!(result, Err(FetchError::Network { .. })));
     assert!(server.requests.lock().unwrap().is_empty());
+}
+
+#[test]
+fn the_default_cache_is_under_the_user_cache_dir() {
+    let dir = ppp_core::cache::default_dir().unwrap();
+    assert!(dir.ends_with("ppp-pipes/http"), "{}", dir.display());
 }

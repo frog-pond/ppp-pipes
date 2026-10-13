@@ -76,7 +76,7 @@ pub fn expand_values(
                 .at(value.span())
         })?;
         time::timestamp(&date).map_err(|_| {
-            CommandError::new("date out of range", "outside the years -9999 to 9999")
+            CommandError::new("date out of range", format!("outside {}", time::RANGE))
                 .at(value.span())
         })
     };

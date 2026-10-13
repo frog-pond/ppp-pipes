@@ -44,8 +44,13 @@ export def main [
 # URL. The pictures are a nicety: if the page fails, the events come without.
 def event-images [page: string, start: datetime, until: datetime]: nothing -> record {
     let day = {|at| $at | date to-timezone America/Chicago | format date "%Y-%m-%d" }
-    let url = $page | url parse | merge {params: {start_date: (do $day $start), end_date: (do $day $until)}} | url join
     try {
+        # Keep any query --page already has, but with our dates.
+        let page_url = $page | url parse
+        let params = $page_url.params
+            | where key not-in [start_date end_date]
+            | append [{key: start_date, value: (do $day $start)} {key: end_date, value: (do $day $until)}]
+        let url = $page_url | reject query | merge {params: $params} | url join
         http get --raw $url
         | query html --query '.event_list--item picture a[href*="eId="]' --as-html
         | each {|link|
@@ -63,7 +68,10 @@ def event-images [page: string, start: datetime, until: datetime]: nothing -> re
         | each {|found| [$found.code $found.image] }
         | into record
     } catch {|err|
-        pipe warn $"Carleton event pictures are missing: ($err.msg)"
+        # The labels say what failed, e.g. "GET <url> returned HTTP 503".
+        let detail = $err.details?.labels?.text? | default [] | str join "; "
+        let reason = if $detail == "" { $err.msg } else { $"($err.msg): ($detail)" }
+        pipe warn $"Carleton event pictures are missing: ($reason)"
         {}
     }
 }

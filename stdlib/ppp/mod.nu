@@ -50,6 +50,12 @@ def web-url []: string -> string {
     url parse | reject params | url join
 }
 
+# A link, image or online record with its `url` made a `web-url`. One with
+# no `url` passes through, so validation reports it.
+def with-web-url []: record -> record {
+    if $in.url? != null { update url { web-url } } else { $in }
+}
+
 # Turn rows from a format reader (`from ics`, `from tribe-events`,
 # `from presence`) into stdlib `event` records.
 #
@@ -114,13 +120,13 @@ def event-from-row [source: any, tz: any]: record -> record {
         status: (if $status in [tentative confirmed cancelled] { $status })
         location: $location
         attendance: $row.attendance?
-        online: ($row.online? | if $in != null { update url { web-url } })
+        online: ($row.online? | if $in != null { with-web-url })
         excerpt: ($row.excerpt? | html to-text)
         description: ($row.description? | default ($row.description_html? | html to-text) | if $in != null { str trim })
         content: $content
         url: (if $has_web_url { $row.url | web-url })
-        links: ($row.links? | default [] | update url { web-url })
-        images: ($row.images? | default [] | update url { web-url })
+        links: ($row.links? | default [] | each { with-web-url })
+        images: ($row.images? | default [] | each { with-web-url })
         cost: $row.cost?
         categories: ($row.categories? | default [] | uniq)
         keywords: ($row.keywords? | default [] | uniq)
@@ -176,6 +182,8 @@ def tribe-row []: record -> record {
     }
     let website = $event.website? | default "" | html to-text | str trim | str replace -r '(%20)+$' ''
     let image = $event.image? | if ($in | describe | str starts-with record) { $in }
+    # Tribe's virtual_url sometimes leaves out the scheme.
+    let virtual_url = $event.virtual_url? | default "" | str trim | if $in != "" and $in !~ '^[A-Za-z][A-Za-z0-9+.-]*:' { $"https://($in)" } else { $in }
     {
         uid: ($event.global_id? | default ($event.id | into string))
         summary: $event.title
@@ -193,7 +201,7 @@ def tribe-row []: record -> record {
         categories: ($event.categories? | default [] | get name? | default [] | each { html to-text })
         keywords: ($event.tags? | default [] | get name? | default [] | each { html to-text })
         images: (if $image != null { [({url: $image.url, alt: ($event.title | html to-text), width: $image.width?, height: $image.height?} | drop-empty)] } else { [] })
-        online: (if ($event.virtual_url? | default "") =~ '^https?://' { {url: $event.virtual_url} })
+        online: (if $virtual_url =~ '^https?://' { {url: $virtual_url} })
         created: (do $utc $event.date_utc)
         last_modified: (do $utc $event.modified_utc)
         featured: $event.featured?
@@ -262,7 +270,9 @@ export def "from presence" [
             description_html: $event.description?
             location: $event.location?
             url: $"https://($event.subdomain).presence.io/event/($event.uri)"
-            images: (if $event.hasCoverImage? == true and $photos != null {
+            # Photos picked through Presence's image search live elsewhere,
+            # and Presence's own link to them 404s, so they are left out.
+            images: (if $event.hasCoverImage? == true and $event.photoType? != search and $photos != null {
                 [{url: $"($photos)($event.photoUriWithVersion)", alt: $event.eventName}]
             } else { [] })
             organizers: $organizers

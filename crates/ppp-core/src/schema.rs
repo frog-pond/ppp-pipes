@@ -6,6 +6,7 @@
 
 use std::collections::BTreeMap;
 
+use jsonschema::error::ValidationErrorKind;
 use serde_json::Value as Json;
 
 use crate::time_fields::{self, Documents, TimeTree};
@@ -163,19 +164,64 @@ impl Registry {
             let message = format!("unknown record type \"{type_name}\"");
             return vec![error(index, "/type", &message, &record["type"])];
         };
-        record_type
-            .validator
-            .iter_errors(record)
+        let errors: Vec<_> = record_type.validator.iter_errors(record).collect();
+        let fails_format = |path: &str| {
+            errors.iter().any(|e| {
+                matches!(e.kind(), ValidationErrorKind::Format { .. })
+                    && e.instance_path().as_str() == path
+            })
+        };
+        errors
+            .iter()
+            // A value that fails its `format` usually fails its `pattern`
+            // too; one bad value is one error.
+            .filter(|e| {
+                !matches!(e.kind(), ValidationErrorKind::Pattern { .. })
+                    || !fails_format(e.instance_path().as_str())
+            })
             .map(|e| {
                 error(
                     index,
                     &e.instance_path().to_string(),
-                    &e.to_string(),
+                    &message(e),
                     e.instance(),
                 )
             })
             .collect()
     }
+}
+
+/// The validator's message, in plainer words for the formats and the
+/// `when` choice that people get wrong most.
+fn message(e: &jsonschema::ValidationError) -> String {
+    let value = e.instance();
+    match e.kind() {
+        ValidationErrorKind::Format { format } => match describe_format(format) {
+            Some(what) => format!("{value} is not {what}"),
+            None => e.to_string(),
+        },
+        ValidationErrorKind::AnyOf { .. }
+            if e.absolute_keyword_location()
+                .is_some_and(|uri| uri.as_str() == format!("{COMMON_ID}#/$defs/when/anyOf")) =>
+        {
+            format!(
+                "{value} is not a date (2026-10-14), an instant (2026-10-14T00:30:00Z) or a local date-time (2026-10-14T19:30:00)"
+            )
+        }
+        _ => e.to_string(),
+    }
+}
+
+fn describe_format(format: &str) -> Option<&'static str> {
+    Some(match format {
+        "date" => "a date, such as 2026-10-14",
+        "date-time" => "an instant, such as 2026-10-14T00:30:00Z",
+        "local-date-time" => "a local date-time, such as 2026-10-14T19:30:00",
+        "iana-tz" => "an IANA time zone name, such as America/Chicago",
+        "duration" => "an ISO 8601 duration, such as PT2H",
+        "uri" => "a URL",
+        _ => return None,
+    })
 }
 
 fn error(index: usize, pointer: &str, message: &str, value: &Json) -> RecordError {
