@@ -183,3 +183,28 @@ fn urls_with_non_ascii_characters_are_percent_encoded() {
     let event = events(ics).remove(0);
     assert_eq!(event["url"], "https://www.example.edu/mesa-de-espa%C3%B1ol");
 }
+
+#[test]
+fn entries_without_a_url_reach_validation() {
+    // A reader that leaves `url` out gets a schema error at the entry, not
+    // a nushell error from `into event`.
+    let registry = Registry::stdlib().unwrap();
+    let time_fields = &registry.record_type("event").unwrap().time_fields;
+    let mut engine = Engine::new();
+    let row = engine
+        .eval(
+            "use ppp *; [{uid: x, summary: Talk, start: 2026-10-14T18:00:00Z,
+              links: [{rel: related}], images: [{alt: Poster}], online: {platform: Zoom}}]
+             | into event --source https://example.edu/feed | first",
+            Value::test_nothing(),
+        )
+        .unwrap();
+    let json = record_to_json(&row, time_fields).unwrap();
+    let mut pointers: Vec<String> = registry
+        .validate(0, &json)
+        .into_iter()
+        .map(|e| e.pointer)
+        .collect();
+    pointers.sort();
+    assert_eq!(pointers, ["/images/0", "/links/0", "/online"]);
+}

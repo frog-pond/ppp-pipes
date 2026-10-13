@@ -50,6 +50,12 @@ def web-url []: string -> string {
     url parse | reject params | url join
 }
 
+# A link, image or online record with its `url` made a `web-url`. One with
+# no `url` passes through, so validation reports it.
+def with-web-url []: record -> record {
+    if $in.url? != null { update url { web-url } } else { $in }
+}
+
 # Turn rows from a format reader (`from ics`, `from tribe-events`,
 # `from presence`) into stdlib `event` records.
 #
@@ -114,13 +120,13 @@ def event-from-row [source: any, tz: any]: record -> record {
         status: (if $status in [tentative confirmed cancelled] { $status })
         location: $location
         attendance: $row.attendance?
-        online: ($row.online? | if $in != null { update url { web-url } })
+        online: ($row.online? | if $in != null { with-web-url })
         excerpt: ($row.excerpt? | html to-text)
         description: ($row.description? | default ($row.description_html? | html to-text) | if $in != null { str trim })
         content: $content
         url: (if $has_web_url { $row.url | web-url })
-        links: ($row.links? | default [] | update url { web-url })
-        images: ($row.images? | default [] | update url { web-url })
+        links: ($row.links? | default [] | each { with-web-url })
+        images: ($row.images? | default [] | each { with-web-url })
         cost: $row.cost?
         categories: ($row.categories? | default [] | uniq)
         keywords: ($row.keywords? | default [] | uniq)
