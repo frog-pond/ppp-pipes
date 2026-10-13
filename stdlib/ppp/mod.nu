@@ -268,7 +268,9 @@ export def "from presence" [
             description_html: $event.description?
             location: $event.location?
             url: $"https://($event.subdomain).presence.io/event/($event.uri)"
-            images: (if $event.hasCoverImage? == true and $photos != null {
+            # Photos picked through Presence's image search live elsewhere,
+            # and Presence's own link to them 404s, so they are left out.
+            images: (if $event.hasCoverImage? == true and $event.photoType? != search and $photos != null {
                 [{url: $"($photos)($event.photoUriWithVersion)", alt: $event.eventName}]
             } else { [] })
             organizers: $organizers
