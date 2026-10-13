@@ -27,7 +27,8 @@ impl Command for ExpandRrule {
          overlapping [--from, --until), each with `recurrence_id` set to the occurrence's original \
          start and no `rrule`, `rdates` or `exdates`. An occurrence that has an override row \
          (same `uid`, matching `recurrence_id`) is left out, since the override row stands in \
-         for it. Every other row passes through unchanged; filter them with `during`."
+         for it; RANGE=THISANDFUTURE is not supported, so later occurrences keep the master's \
+         data. Every other row passes through unchanged; filter them with `during`."
     }
 
     fn signature(&self) -> Signature {

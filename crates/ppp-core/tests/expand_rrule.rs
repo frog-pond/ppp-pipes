@@ -182,6 +182,26 @@ fn bad_rules_name_the_event() {
 }
 
 #[test]
+fn a_thisandfuture_override_replaces_only_its_own_occurrence() {
+    // RANGE=THISANDFUTURE is not supported: later occurrences keep the
+    // master's data.
+    let ics = "BEGIN:VCALENDAR\nX-WR-TIMEZONE:America/Chicago\n\
+        BEGIN:VEVENT\nUID:s@example.edu\nSUMMARY:Standup\nDTSTART:20261012T093000\nRRULE:FREQ=DAILY;COUNT=4\nEND:VEVENT\n\
+        BEGIN:VEVENT\nUID:s@example.edu\nSUMMARY:Standup (later)\nRECURRENCE-ID;RANGE=THISANDFUTURE:20261013T093000\nDTSTART:20261013T110000\nEND:VEVENT\n\
+        END:VCALENDAR\n";
+    let events = expanded(ics, "2026-10-12T00:00:00Z", "2026-10-20T00:00:00Z");
+    assert_eq!(
+        summary_and_start(&events),
+        [
+            ("Standup".into(), "2026-10-12T09:30:00".into()),
+            ("Standup".into(), "2026-10-14T09:30:00".into()),
+            ("Standup".into(), "2026-10-15T09:30:00".into()),
+            ("Standup (later)".into(), "2026-10-13T11:00:00".into()),
+        ]
+    );
+}
+
+#[test]
 fn a_window_past_jiffs_range_points_at_the_flag() {
     let mut engine = Engine::new();
     let err = engine
