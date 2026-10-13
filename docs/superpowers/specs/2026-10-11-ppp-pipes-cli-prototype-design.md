@@ -81,7 +81,7 @@ The workspace pins nushell crates to 0.116.1. The plugin protocol requires the p
 
 ### 4.1 `ppp-core`
 
-- **`engine`** builds a nushell `EngineState` from a hand-picked command list: `nu-cmd-lang`, a chosen subset of `nu-command`, and our commands. It leaves out external commands (`^cmd`, `run-external`), all filesystem commands (`open`, `ls`, `save`, `rm`, …), `cd` and plugins. The runner reads the pipe's own file and hands it to the engine. nushell's parser would read any other file a pipe names in `use`, `overlay use` or `module`, so the engine refuses a parse that read one, before its contents can show up in an error. Our `http get` replaces the built-in one. The embedded `stdlib/` is on the module path, so `use ppp *` works. `$env.PWD` is `/`, because some commands (`http get` among them) need a working directory and pipes have no filesystem to work in. The engine installs nushell's default rustls crypto provider so `http get` can use TLS. `nu-command` is built with its `os` feature: other nushell crates turn on `nu-protocol`'s `os` feature, and `nu-command` does not compile unless its own matches.
+- **`engine`** builds a nushell `EngineState` from a hand-picked command list: `nu-cmd-lang`, a chosen subset of `nu-command`, and our commands. It leaves out external commands (`^cmd`, `run-external`), all filesystem commands (`open`, `ls`, `save`, `rm`, …), `cd` and plugins. The runner reads the pipe's own file and hands it to the engine. nushell's parser would read any other file a pipe names in `use`, `overlay use` or `module`, so the engine refuses a parse that read one, before its contents can show up in an error. Our `http get` replaces the built-in one. The embedded `stdlib/` is on the module path, so `use ppp *` works. `$env.PWD` is `/`, because some commands (`http get` among them) need a working directory and pipes have no filesystem to work in. Natively, the nushell crates are built with their `os` feature: other nushell crates turn on `nu-protocol`'s `os` feature, and `nu-command` does not compile unless its own matches. For WASI it is off (§4.6).
 - **`pipe`** loads a `.nu` file with `use`, which evaluates its consts without running `main`. It then reads a `PipeInfo`:
 
   | Field | Source |
@@ -155,6 +155,22 @@ Outside the runner there is no sandbox, and `http get` is nushell's own, without
 The plugin is built against nushell 0.116.1 and loads only into that version.
 
 The library module is called `ppp`, not `pipes`, because nushell's `use` looks for a directory of that name in the current directory before `NU_LIB_DIRS`, and `pipes/` is where pipe files conventionally live.
+
+### 4.6 WASI
+
+`ppp` also builds for `wasm32-wasip2` and runs under a WASI runtime such as wasmtime:
+
+```sh
+cargo +nightly build -p ppp-cli --target wasm32-wasip2
+wasmtime run -S inherit-network=y -S allow-ip-name-lookup=y --dir pipes::/pipes \
+  target/wasm32-wasip2/debug/ppp.wasm run --pipes-dir /pipes campus-week
+```
+
+- **Nightly only.** `nu-command` depends on `typed-path` (through `calamine`), which uses `feature(wasip2)` on that target.
+- **A WASI C toolchain.** `ring`, behind rustls, has C code. Point `CC_wasm32_wasip2` at wasi-sdk's `clang` and `CFLAGS_wasm32_wasip2` at `--sysroot=<wasi-sdk>/share/wasi-sysroot` (and `AR_wasm32_wasip2` at its `llvm-ar`).
+- **Nushell without `os`.** Its terminal, pipe and process code doesn't build for WASI; pipes never had those commands anyway.
+- **No threads.** Nothing watches a run's time limit; HTTP requests still end at the deadline, and the WASI host caps the whole run (`wasmtime run -W timeout=60s`), which ends it with a trap rather than `ppp`'s own message. `http get` times each step of a request but not name resolution, which ureq would otherwise do on a thread.
+- The plugin is native only.
 
 ---
 
@@ -332,6 +348,7 @@ Unit and integration tests run on saved copies of real feeds. Nothing is mocked.
 - **Sandbox**: `^ls`, `run-external`, `save`, `cd` and `rm` are not registered; `use`, `overlay use` and `module` cannot load a file from disk.
 - **Names**: none of our commands shadows a nushell built-in.
 - **CLI**: `ppp run`, `info` and `validate` against pipes in `fixtures/` whose input data is written inline (the sandbox has no file access); checks exit codes and stderr.
+- **WASI** (`#[ignore]`, needs the wasm build and wasmtime): `ppp.wasm` gives the native build's records for a fixture pipe, a pipe that fetches over HTTP, and `carleton-week` with `query html`.
 - **Live acceptance** (`#[ignore]`, run with `cargo test -- --ignored`): the six acceptance pipes fetch their real URLs, and every record must validate.
 
 ---
