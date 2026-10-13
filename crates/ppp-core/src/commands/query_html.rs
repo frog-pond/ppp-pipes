@@ -2,12 +2,9 @@
 //! results as nushell's `query web` (see `html_query`).
 
 use nu_engine::command_prelude::*;
-use nu_engine::eval_expression;
-use nu_plugin_protocol::EvaluatedCall;
-use nu_protocol::debugger::WithoutDebug;
 
 use super::Context;
-use crate::html_query::parse_selector_params;
+use crate::html_query::{Selector, query};
 
 #[derive(Clone)]
 pub struct QueryHtml {
@@ -66,15 +63,30 @@ impl Command for QueryHtml {
         input: PipelineData,
     ) -> Result<PipelineData, ShellError> {
         let head = call.head;
-        let evaluated = EvaluatedCall::try_from_call(
-            call,
-            engine_state,
-            stack,
-            eval_expression::<WithoutDebug>,
-        )?;
+        let query_flag: Option<Spanned<String>> = call.get_flag(engine_state, stack, "query")?;
+        let selector = Selector {
+            query: query_flag.unwrap_or(Spanned {
+                item: String::new(),
+                span: head,
+            }),
+            as_html: call.has_flag(engine_state, stack, "as-html")?,
+            attribute: call
+                .get_flag(engine_state, stack, "attribute")?
+                .unwrap_or_else(|| Value::nothing(head)),
+            as_table: call
+                .get_flag(engine_state, stack, "as-table")?
+                .unwrap_or_else(|| Value::nothing(head)),
+            // The engine's call doesn't give a flag's own span; errors
+            // that --inspect reports point at the command instead.
+            inspect: Spanned {
+                item: call.has_flag(engine_state, stack, "inspect")?,
+                span: head,
+            },
+            document: call.has_flag(engine_state, stack, "document")?,
+        };
         let input = input.into_value(head)?;
         let host = &self.context.host;
-        parse_selector_params(&evaluated, &input, &mut |message| host.warn(message))
+        query(selector, &input, &mut |message| host.warn(message))
             .map(|value| value.into_pipeline_data())
             .map_err(ShellError::from)
     }

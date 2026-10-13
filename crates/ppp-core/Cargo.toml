@@ -14,7 +14,6 @@ nu-cmd-lang.workspace = true
 nu-command.workspace = true
 nu-engine.workspace = true
 nu-parser.workspace = true
-nu-plugin-protocol.workspace = true
 nu-protocol.workspace = true
 rrule.workspace = true
 scraper.workspace = true
