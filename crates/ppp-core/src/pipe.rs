@@ -339,6 +339,13 @@ fn read_params(command: &Value) -> Result<Vec<Param>, String> {
         match text("parameter_type").as_str() {
             "input" | "output" => {}
             "named" | "switch" if text("parameter_name") == "help" => {}
+            // `run` passes flags by name, so a flag needs one.
+            "named" | "switch" if text("parameter_name").is_empty() => {
+                return Err(format!(
+                    "`main` has a flag `-{short}` with no long name; pipe flags need one, e.g. `--name (-{short})`",
+                    short = text("short_flag")
+                ));
+            }
             kind @ ("named" | "switch") => params.push(Param {
                 name: text("parameter_name"),
                 shape: if kind == "switch" {
